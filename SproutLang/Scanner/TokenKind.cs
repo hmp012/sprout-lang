@@ -1,5 +1,7 @@
 namespace SproutLang.Scanner;
 
+using System.Collections.Generic;
+
 public enum TokenKind
 {
     // Literals
@@ -46,6 +48,7 @@ public enum TokenKind
     EOT,
     Error
 }
+
 public static class TokenKindExtensions
 {
     private static readonly Dictionary<TokenKind, string> Spellings = new()
@@ -90,7 +93,7 @@ public static class TokenKindExtensions
         { TokenKind.RBrace, "}" },
         
         { TokenKind.EOT, "EOT" },
-        {TokenKind.Error, "Error" }
+        { TokenKind.Error, "Error" }
     };
 
     public static string GetSpelling(this TokenKind kind)

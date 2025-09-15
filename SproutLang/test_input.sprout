@@ -1,0 +1,16 @@
+# This is a test program
+create int x = 42;
+create bool flag = true;
+si (x > 10) {
+    vomit "x is greater than 10";
+} sino {
+    vomit "x is small";
+}
+
+sprout function(int a, int b) {
+    bloom a + b;
+}
+
+repeat 5 times {
+    x = x - 1;
+}
