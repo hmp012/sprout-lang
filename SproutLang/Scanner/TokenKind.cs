@@ -30,7 +30,11 @@ public enum TokenKind
     Times,
 
     // Operators
-    Operators,
+    Plus, Minus, Multiply, Divide,
+    Equals, NotEquals,
+    LessThan, GreaterThan,
+    And, Or, Not,
+    Assign,
 
     // Symbols
     Comma, Semicolon,
@@ -42,7 +46,6 @@ public enum TokenKind
     EOT,
     Error
 }
-
 public static class TokenKindExtensions
 {
     private static readonly Dictionary<TokenKind, string> Spellings = new()
@@ -64,7 +67,18 @@ public static class TokenKindExtensions
         { TokenKind.Bloom, "bloom" },
         { TokenKind.Times, "times" },
 
-        { TokenKind.Operators, "operators"},
+        { TokenKind.Plus, "+" },
+        { TokenKind.Minus, "-" },
+        { TokenKind.Multiply, "*" },
+        { TokenKind.Divide, "/" },
+        { TokenKind.Equals, "==" },
+        { TokenKind.NotEquals, "!=" },
+        { TokenKind.LessThan, "<" },
+        { TokenKind.GreaterThan, ">" },
+        { TokenKind.And, "&&" },
+        { TokenKind.Or, "||" },
+        { TokenKind.Not, "!" },
+        { TokenKind.Assign, "=" },
 
         { TokenKind.Comma, "," },
         { TokenKind.Semicolon, ";" },
