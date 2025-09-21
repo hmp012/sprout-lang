@@ -7,7 +7,26 @@ public class Token
 
     public Token(TokenKind kind, string spelling)
     {
-        Kind = kind;
+        var keywords = new[]
+        {
+            TokenKind.Create, TokenKind.Vomit, TokenKind.ListenCarefully,
+            TokenKind.Si, TokenKind.O, TokenKind.Sino, TokenKind.Repeat,
+            TokenKind.Until, TokenKind.Sprout, TokenKind.Bloom, TokenKind.Times
+        };
+        TokenKind actualKind = kind;
+        
+        if (kind == TokenKind.Identifier)
+        {
+            foreach (var keyword in keywords)
+            {
+                if (spelling == keyword.GetSpelling())
+                {
+                    actualKind = keyword;
+                    break;
+                }
+            }
+        }
+        Kind = actualKind;
         Spelling = spelling;
     }
 

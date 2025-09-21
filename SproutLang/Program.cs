@@ -1,3 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-Console.WriteLine("Hello, World!");
+
+using SproutLang.Scanner;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        TestScanner.Run(args);
+    }
+}
