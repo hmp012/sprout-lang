@@ -114,6 +114,12 @@ public class Scanner
             case '}':
                 takeIt();
                 return TokenKind.RBrace;
+            case '<':
+                takeIt();
+                return TokenKind.LessThan;
+            case '>':
+                takeIt();
+                return TokenKind.GreaterThan;
             case SourceFile.EOT:
                 return TokenKind.EOT;
             default:
