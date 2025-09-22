@@ -28,13 +28,13 @@ public class Parser
     // Program ::= Statement*
     public void parseProgram()
     {
-        while (_currentToken.Kind != TokenKind.EOT)
+        while (isStarterOfStatement(_currentToken.Kind))
         {
             parseStatement();
         }
     }
 
-    // Statement ::= Declaration | Assignment | Expression | IfStatement | LoopStatement | OutputStatement | BlockStatement
+    // Statement ::= Declaration | Assignment | Expression | IfStatement | LoopStatement | OutputStatement | BlockStatement | BloomStatement
     public void parseStatement()
     {
         switch (_currentToken.Kind)
@@ -53,6 +53,9 @@ public class Parser
                 break;
             case TokenKind.Vomit:
                 parseOutputStatement();
+                break;
+            case TokenKind.Bloom:
+                parseBloomStatement();
                 break;
             case TokenKind.LBrace:
                 parseBlockStatement();
@@ -128,6 +131,13 @@ public class Parser
     {
         accept(TokenKind.Vomit);
         parseExpression();
+        accept(TokenKind.Semicolon);
+    }
+
+    // BloomStatement ::= "bloom" ";"
+    public void parseBloomStatement()
+    {
+        accept(TokenKind.Bloom);
         accept(TokenKind.Semicolon);
     }
 
@@ -347,5 +357,30 @@ public class Parser
     {
         // This would require lookahead - simplified implementation
         return false;
+    }
+
+    // Starter checking pattern for statements
+    private bool isStarterOfStatement(TokenKind kind)
+    {
+        return kind == TokenKind.Create ||
+               kind == TokenKind.Identifier ||
+               kind == TokenKind.Si ||
+               kind == TokenKind.Repeat ||
+               kind == TokenKind.Vomit ||
+               kind == TokenKind.Bloom ||
+               kind == TokenKind.LBrace ||
+               isStarterOfExpression(kind);
+    }
+    
+    // Helper method to check if current token is a starter of Expression
+    private bool isStarterOfExpression(TokenKind kind)
+    {
+        return kind == TokenKind.IntLiteral ||
+               kind == TokenKind.CharLiteral ||
+               kind == TokenKind.StringLiteral ||
+               kind == TokenKind.Identifier ||
+               kind == TokenKind.LParenthesis ||
+               kind == TokenKind.Not ||
+               kind == TokenKind.Minus;
     }
 }
