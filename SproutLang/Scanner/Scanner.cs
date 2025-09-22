@@ -95,7 +95,42 @@ public class Scanner
                 return TokenKind.Divide;
             case '=':
                 takeIt();
-                return TokenKind.Equals;
+                if (currentChar == '=')
+                {
+                    takeIt();
+                    return TokenKind.Equals;  // ==
+                }
+                return TokenKind.Assign;  // =
+            case '!':
+                takeIt();
+                if (currentChar == '=')
+                {
+                    takeIt();
+                    return TokenKind.NotEquals;  // !=
+                }
+                return TokenKind.Not;  // !
+            case '&':
+                takeIt();
+                if (currentChar == '&')
+                {
+                    takeIt();
+                    return TokenKind.And;  // &&
+                }
+                else
+                {
+                    return TokenKind.Error;
+                }
+            case '|':
+                takeIt();
+                if (currentChar == '|')
+                {
+                    takeIt();
+                    return TokenKind.Or;  // ||
+                }
+                else
+                {
+                    return TokenKind.Error;
+                }
             case ',':
                 takeIt();
                 return TokenKind.Comma;
@@ -108,6 +143,12 @@ public class Scanner
             case ')':
                 takeIt();
                 return TokenKind.RParenthesis;
+            case '[':
+                takeIt();
+                return TokenKind.LBracket;
+            case ']':
+                takeIt();
+                return TokenKind.RBracket;
             case '{':
                 takeIt();
                 return TokenKind.LBrace;

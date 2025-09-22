@@ -1,5 +1,5 @@
 create number = 42;
-vomit number + 8
+vomit number + 8;
 # This is a comment
 repeat (number < 10) {
     bloom;
