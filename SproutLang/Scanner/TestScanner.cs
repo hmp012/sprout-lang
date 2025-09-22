@@ -4,7 +4,7 @@ public class TestScanner
 {
     public static void Run(string[] args)
     {
-        var fileName = "/Users/sergioqueber/Repos/sprout-lang/SproutLang/test.txt"; 
+        var fileName = "/Users/dkhumape/Documents/7th Semester/CMC/SproutLang/test.txt"; 
         var sourceFile = new SourceFile(fileName);
         var scanner = new Scanner(sourceFile);
 
