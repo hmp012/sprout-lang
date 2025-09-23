@@ -20,7 +20,7 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore SproutLang.sln
+        run: dotnet restore SproutLang/SproutLang.sln
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
