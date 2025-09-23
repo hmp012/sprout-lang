@@ -72,7 +72,6 @@ public class Scanner
                 "int" => TokenKind.Int,
                 "bool" => TokenKind.Bool,
                 "char" => TokenKind.Char,
-                "string" => TokenKind.String,
                 _ => TokenKind.Identifier
             };
         }

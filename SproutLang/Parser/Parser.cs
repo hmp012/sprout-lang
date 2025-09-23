@@ -361,9 +361,6 @@ public class Parser
             case TokenKind.Char:
                 Accept(TokenKind.Char);
                 break;
-            case TokenKind.String:
-                Accept(TokenKind.String);
-                break;
             default:
                 throw new Exception($"Expected type, but found {_currentToken.Kind}");
         }

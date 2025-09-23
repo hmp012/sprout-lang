@@ -60,12 +60,11 @@ public class ScannerTests
     [Fact]
     public void ScansTypes()
     {
-        var tokens = ScanAll("int bool char string");
+        var tokens = ScanAll("int bool char");
         Assert.Equal(TokenKind.Int, tokens[0].Kind);
         Assert.Equal(TokenKind.Bool, tokens[1].Kind);
         Assert.Equal(TokenKind.Char, tokens[2].Kind);
-        Assert.Equal(TokenKind.String, tokens[3].Kind);
-        Assert.Equal(TokenKind.EOT, tokens[4].Kind);
+        Assert.Equal(TokenKind.EOT, tokens[3].Kind);
     }
 
     [Fact]
