@@ -13,7 +13,7 @@ public class Parser
         _currentToken = _scanner.Scan();
     }
 
-    private void accept(TokenKind expectedKind)
+    private void Accept(TokenKind expectedKind)
     {
         if (_currentToken.Kind == expectedKind)
         {
@@ -26,256 +26,273 @@ public class Parser
     }
 
     // Program ::= Statement*
-    public void parseProgram()
+    public void ParseProgram()
     {
-        while (isStarterOfStatement(_currentToken.Kind))
+        while (IsStarterOfStatement(_currentToken.Kind))
         {
-            parseStatement();
+            ParseStatement();
         }
     }
 
     // Statement ::= Declaration | Assignment | Expression | IfStatement | LoopStatement | OutputStatement | BlockStatement | BloomStatement
-    public void parseStatement()
+    private void ParseStatement()
     {
         switch (_currentToken.Kind)
         {
             case TokenKind.Create:
-                parseDeclaration();
+                ParseDeclaration();
                 break;
             case TokenKind.Identifier:
-                parseAssignment();
+                ParseAssignment();
                 break;
             case TokenKind.Si:
-                parseIfStatement();
+                ParseIfStatement();
                 break;
             case TokenKind.Repeat:
-                parseLoopStatement();
+                ParseLoopStatement();
                 break;
             case TokenKind.Vomit:
-                parseOutputStatement();
+                ParseOutputStatement();
                 break;
             case TokenKind.Bloom:
-                parseBloomStatement();
+                ParseBloomStatement();
                 break;
             case TokenKind.LBrace:
-                parseBlockStatement();
+                ParseBlockStatement();
                 break;
             default:
-                parseExpressionStatement();
+                ParseExpressionStatement();
                 break;
         }
     }
 
     // Declaration ::= "create" Identifier "=" Expression ";"
-    public void parseDeclaration()
+    private void ParseDeclaration()
     {
-        accept(TokenKind.Create);
-        parseIdentifier();
-        accept(TokenKind.Assign);
-        parseExpression();
-        accept(TokenKind.Semicolon);
+        Accept(TokenKind.Create);
+
+        if (_currentToken.Kind == TokenKind.LBracket)
+        {
+            // Array declaration: [Type, IntLiteral] VarName
+            Accept(TokenKind.LBracket);
+            ParseType();
+            Accept(TokenKind.Comma);
+            Accept(TokenKind.IntLiteral);
+            Accept(TokenKind.RBracket);
+            ParseIdentifier();
+        }
+        else
+        {
+            // Simple variable: Type VarName
+            ParseType();
+            ParseIdentifier();
+        }
+
+        Accept(TokenKind.Assign);
+        ParseExpression();
+        Accept(TokenKind.Semicolon);
     }
 
     // Assignment ::= Identifier "=" Expression ";"
-    public void parseAssignment()
+    private void ParseAssignment()
     {
-        parseIdentifier();
-        accept(TokenKind.Assign);
-        parseExpression();
-        accept(TokenKind.Semicolon);
+        ParseIdentifier();
+        Accept(TokenKind.Assign);
+        ParseExpression();
+        Accept(TokenKind.Semicolon);
     }
 
     // IfStatement ::= "si" "(" Expression ")" Statement ("sino" Statement)?
-    public void parseIfStatement()
+    private void ParseIfStatement()
     {
-        accept(TokenKind.Si);
-        accept(TokenKind.LParenthesis);
-        parseExpression();
-        accept(TokenKind.RParenthesis);
-        parseStatement();
+        Accept(TokenKind.Si);
+        Accept(TokenKind.LParenthesis);
+        ParseExpression();
+        Accept(TokenKind.RParenthesis);
+        ParseStatement();
         
         if (_currentToken.Kind == TokenKind.Sino)
         {
-            accept(TokenKind.Sino);
-            parseStatement();
+            Accept(TokenKind.Sino);
+            ParseStatement();
         }
     }
 
     // LoopStatement ::= "repeat" "(" Expression ")" Statement | "repeat" Statement "until" "(" Expression ")" ";"
-    public void parseLoopStatement()
+    private void ParseLoopStatement()
     {
-        accept(TokenKind.Repeat);
+        Accept(TokenKind.Repeat);
         
         if (_currentToken.Kind == TokenKind.LParenthesis)
         {
             // while-style loop
-            accept(TokenKind.LParenthesis);
-            parseExpression();
-            accept(TokenKind.RParenthesis);
-            parseStatement();
+            Accept(TokenKind.LParenthesis);
+            ParseExpression();
+            Accept(TokenKind.RParenthesis);
+            ParseStatement();
         }
         else
         {
             // do-while style loop
-            parseStatement();
-            accept(TokenKind.Until);
-            accept(TokenKind.LParenthesis);
-            parseExpression();
-            accept(TokenKind.RParenthesis);
-            accept(TokenKind.Semicolon);
+            ParseStatement();
+            Accept(TokenKind.Until);
+            Accept(TokenKind.LParenthesis);
+            ParseExpression();
+            Accept(TokenKind.RParenthesis);
+            Accept(TokenKind.Semicolon);
         }
     }
 
     // OutputStatement ::= "vomit" Expression ";"
-    public void parseOutputStatement()
+    private void ParseOutputStatement()
     {
-        accept(TokenKind.Vomit);
-        parseExpression();
-        accept(TokenKind.Semicolon);
+        Accept(TokenKind.Vomit);
+        ParseExpression();
+        Accept(TokenKind.Semicolon);
     }
 
     // BloomStatement ::= "bloom" ";"
-    public void parseBloomStatement()
+    private void ParseBloomStatement()
     {
-        accept(TokenKind.Bloom);
-        accept(TokenKind.Semicolon);
+        Accept(TokenKind.Bloom);
+        Accept(TokenKind.Semicolon);
     }
 
     // BlockStatement ::= "{" Statement* "}"
-    public void parseBlockStatement()
+    private void ParseBlockStatement()
     {
-        accept(TokenKind.LBrace);
+        Accept(TokenKind.LBrace);
         while (_currentToken.Kind != TokenKind.RBrace)
         {
-            parseStatement();
+            ParseStatement();
         }
-        accept(TokenKind.RBrace);
+        Accept(TokenKind.RBrace);
     }
 
     // ExpressionStatement ::= Expression ";"
-    public void parseExpressionStatement()
+    private void ParseExpressionStatement()
     {
-        parseExpression();
-        accept(TokenKind.Semicolon);
+        ParseExpression();
+        Accept(TokenKind.Semicolon);
     }
 
     // Expression ::= LogicalOrExpression
-    public void parseExpression()
+    private void ParseExpression()
     {
-        parseLogicalOrExpression();
+        ParseLogicalOrExpression();
     }
 
     // LogicalOrExpression ::= LogicalAndExpression ("||" LogicalAndExpression)*
-    public void parseLogicalOrExpression()
+    private void ParseLogicalOrExpression()
     {
-        parseLogicalAndExpression();
+        ParseLogicalAndExpression();
         while (_currentToken.Kind == TokenKind.Or)
         {
-            accept(TokenKind.Or);
-            parseLogicalAndExpression();
+            Accept(TokenKind.Or);
+            ParseLogicalAndExpression();
         }
     }
 
     // LogicalAndExpression ::= EqualityExpression ("&&" EqualityExpression)*
-    public void parseLogicalAndExpression()
+    private void ParseLogicalAndExpression()
     {
-        parseEqualityExpression();
+        ParseEqualityExpression();
         while (_currentToken.Kind == TokenKind.And)
         {
-            accept(TokenKind.And);
-            parseEqualityExpression();
+            Accept(TokenKind.And);
+            ParseEqualityExpression();
         }
     }
 
     // EqualityExpression ::= RelationalExpression (("==" | "!=") RelationalExpression)*
-    public void parseEqualityExpression()
+    private void ParseEqualityExpression()
     {
-        parseRelationalExpression();
+        ParseRelationalExpression();
         while (_currentToken.Kind == TokenKind.Equals || _currentToken.Kind == TokenKind.NotEquals)
         {
             if (_currentToken.Kind == TokenKind.Equals)
-                accept(TokenKind.Equals);
+                Accept(TokenKind.Equals);
             else
-                accept(TokenKind.NotEquals);
-            parseRelationalExpression();
+                Accept(TokenKind.NotEquals);
+            ParseRelationalExpression();
         }
     }
 
     // RelationalExpression ::= AdditiveExpression (("<" | ">") AdditiveExpression)*
-    public void parseRelationalExpression()
+    private void ParseRelationalExpression()
     {
-        parseAdditiveExpression();
+        ParseAdditiveExpression();
         while (_currentToken.Kind == TokenKind.LessThan || _currentToken.Kind == TokenKind.GreaterThan)
         {
             if (_currentToken.Kind == TokenKind.LessThan)
-                accept(TokenKind.LessThan);
+                Accept(TokenKind.LessThan);
             else
-                accept(TokenKind.GreaterThan);
-            parseAdditiveExpression();
+                Accept(TokenKind.GreaterThan);
+            ParseAdditiveExpression();
         }
     }
 
     // AdditiveExpression ::= MultiplicativeExpression (("+" | "-") MultiplicativeExpression)*
-    public void parseAdditiveExpression()
+    private void ParseAdditiveExpression()
     {
-        parseMultiplicativeExpression();
+        ParseMultiplicativeExpression();
         while (_currentToken.Kind == TokenKind.Plus || _currentToken.Kind == TokenKind.Minus)
         {
             if (_currentToken.Kind == TokenKind.Plus)
-                accept(TokenKind.Plus);
+                Accept(TokenKind.Plus);
             else
-                accept(TokenKind.Minus);
-            parseMultiplicativeExpression();
+                Accept(TokenKind.Minus);
+            ParseMultiplicativeExpression();
         }
     }
 
     // MultiplicativeExpression ::= UnaryExpression (("*" | "/") UnaryExpression)*
-    public void parseMultiplicativeExpression()
+    private void ParseMultiplicativeExpression()
     {
-        parseUnaryExpression();
+        ParseUnaryExpression();
         while (_currentToken.Kind == TokenKind.Multiply || _currentToken.Kind == TokenKind.Divide)
         {
             if (_currentToken.Kind == TokenKind.Multiply)
-                accept(TokenKind.Multiply);
+                Accept(TokenKind.Multiply);
             else
-                accept(TokenKind.Divide);
-            parseUnaryExpression();
+                Accept(TokenKind.Divide);
+            ParseUnaryExpression();
         }
     }
 
     // UnaryExpression ::= ("!" | "-")? PrimaryExpression
-    public void parseUnaryExpression()
+    private void ParseUnaryExpression()
     {
         if (_currentToken.Kind == TokenKind.Not || _currentToken.Kind == TokenKind.Minus)
         {
             if (_currentToken.Kind == TokenKind.Not)
-                accept(TokenKind.Not);
+                Accept(TokenKind.Not);
             else
-                accept(TokenKind.Minus);
+                Accept(TokenKind.Minus);
         }
-        parsePrimaryExpression();
+        ParsePrimaryExpression();
     }
 
     // PrimaryExpression ::= Literal | Identifier | "(" Expression ")" | FunctionCall
-    public void parsePrimaryExpression()
+    private void ParsePrimaryExpression()
     {
         switch (_currentToken.Kind)
         {
             case TokenKind.IntLiteral:
             case TokenKind.CharLiteral:
             case TokenKind.StringLiteral:
-                parseLiteral();
+                ParseLiteral();
                 break;
             case TokenKind.Identifier:
-                if (isNextToken(TokenKind.LParenthesis))
-                    parseFunctionCall();
+                if (IsNextToken(TokenKind.LParenthesis))
+                    ParseFunctionCall();
                 else
-                    parseIdentifier();
+                    ParseIdentifier();
                 break;
             case TokenKind.LParenthesis:
-                accept(TokenKind.LParenthesis);
-                parseExpression();
-                accept(TokenKind.RParenthesis);
+                Accept(TokenKind.LParenthesis);
+                ParseExpression();
+                Accept(TokenKind.RParenthesis);
                 break;
             default:
                 throw new Exception($"Unexpected token in primary expression: {_currentToken.Kind}");
@@ -283,41 +300,41 @@ public class Parser
     }
 
     // FunctionCall ::= Identifier "(" ArgumentList? ")"
-    public void parseFunctionCall()
+    private void ParseFunctionCall()
     {
-        parseIdentifier();
-        accept(TokenKind.LParenthesis);
+        ParseIdentifier();
+        Accept(TokenKind.LParenthesis);
         if (_currentToken.Kind != TokenKind.RParenthesis)
         {
-            parseArgumentList();
+            ParseArgumentList();
         }
-        accept(TokenKind.RParenthesis);
+        Accept(TokenKind.RParenthesis);
     }
 
     // ArgumentList ::= Expression ("," Expression)*
-    public void parseArgumentList()
+    private void ParseArgumentList()
     {
-        parseExpression();
+        ParseExpression();
         while (_currentToken.Kind == TokenKind.Comma)
         {
-            accept(TokenKind.Comma);
-            parseExpression();
+            Accept(TokenKind.Comma);
+            ParseExpression();
         }
     }
 
     // Literal ::= IntLiteral | CharLiteral | StringLiteral
-    public void parseLiteral()
+    private void ParseLiteral()
     {
         switch (_currentToken.Kind)
         {
             case TokenKind.IntLiteral:
-                accept(TokenKind.IntLiteral);
+                Accept(TokenKind.IntLiteral);
                 break;
             case TokenKind.CharLiteral:
-                accept(TokenKind.CharLiteral);
+                Accept(TokenKind.CharLiteral);
                 break;
             case TokenKind.StringLiteral:
-                accept(TokenKind.StringLiteral);
+                Accept(TokenKind.StringLiteral);
                 break;
             default:
                 throw new Exception($"Expected literal, but found {_currentToken.Kind}");
@@ -325,27 +342,27 @@ public class Parser
     }
 
     // Identifier ::= IDENTIFIER
-    public void parseIdentifier()
+    private void ParseIdentifier()
     {
-        accept(TokenKind.Identifier);
+        Accept(TokenKind.Identifier);
     }
 
     // Type ::= "int" | "bool" | "char" | "string"
-    public void parseType()
+    private void ParseType()
     {
         switch (_currentToken.Kind)
         {
             case TokenKind.Int:
-                accept(TokenKind.Int);
+                Accept(TokenKind.Int);
                 break;
             case TokenKind.Bool:
-                accept(TokenKind.Bool);
+                Accept(TokenKind.Bool);
                 break;
             case TokenKind.Char:
-                accept(TokenKind.Char);
+                Accept(TokenKind.Char);
                 break;
             case TokenKind.String:
-                accept(TokenKind.String);
+                Accept(TokenKind.String);
                 break;
             default:
                 throw new Exception($"Expected type, but found {_currentToken.Kind}");
@@ -353,14 +370,14 @@ public class Parser
     }
 
     // Helper method to check next token without consuming it
-    private bool isNextToken(TokenKind kind)
+    private bool IsNextToken(TokenKind kind)
     {
         // This would require lookahead - simplified implementation
         return false;
     }
 
     // Starter checking pattern for statements
-    private bool isStarterOfStatement(TokenKind kind)
+    private bool IsStarterOfStatement(TokenKind kind)
     {
         return kind == TokenKind.Create ||
                kind == TokenKind.Identifier ||
@@ -369,11 +386,11 @@ public class Parser
                kind == TokenKind.Vomit ||
                kind == TokenKind.Bloom ||
                kind == TokenKind.LBrace ||
-               isStarterOfExpression(kind);
+               IsStarterOfExpression(kind);
     }
     
     // Helper method to check if current token is a starter of Expression
-    private bool isStarterOfExpression(TokenKind kind)
+    private bool IsStarterOfExpression(TokenKind kind)
     {
         return kind == TokenKind.IntLiteral ||
                kind == TokenKind.CharLiteral ||

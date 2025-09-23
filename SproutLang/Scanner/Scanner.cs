@@ -66,7 +66,15 @@ public class Scanner
                 takeIt();
             }
 
-            return TokenKind.Identifier;
+            string spelling = currentSpelling.ToString();
+            return spelling switch
+            {
+                "int" => TokenKind.Int,
+                "bool" => TokenKind.Bool,
+                "char" => TokenKind.Char,
+                "string" => TokenKind.String,
+                _ => TokenKind.Identifier
+            };
         }
         else if (isDigit(currentChar))
         {
