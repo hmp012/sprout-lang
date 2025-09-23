@@ -14,8 +14,7 @@ public enum TokenKind
     Int,
     Bool,
     Char,
-    String,
-
+    
     // Keywords
     Create,
     Vomit,
@@ -53,7 +52,6 @@ public static class TokenKindExtensions
         { TokenKind.Int, "int" },
         { TokenKind.Bool, "bool" },
         { TokenKind.Char, "char" },
-        { TokenKind.String, "string" },
 
         { TokenKind.Create, "create" },
         { TokenKind.Vomit, "vomit" },
