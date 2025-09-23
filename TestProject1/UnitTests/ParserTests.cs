@@ -1,4 +1,4 @@
-﻿namespace TestProject1;
+﻿namespace TestProject1.UnitTests;
 
 using SproutLang.Scanner;
 using SproutLang.Parser;
