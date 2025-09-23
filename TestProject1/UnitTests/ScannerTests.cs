@@ -6,7 +6,7 @@ public class ScannerTests
 {
     private Token[] ScanAll(string code)
     {
-        string tempFile = "temp_scanner_test.txt";
+        string tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, code);
         try
         {

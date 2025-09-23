@@ -8,7 +8,7 @@ public class ParserTests
 {
     private void AssertParses(string code)
     {
-        string tempFile = "temp_test.txt";
+        string tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, code);
         try
         {
@@ -26,7 +26,7 @@ public class ParserTests
 
     private void AssertFails(string code)
     {
-        string tempFile = "temp_test.txt";
+        string tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, code);
         try
         {
