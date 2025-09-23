@@ -23,7 +23,7 @@ jobs:
         run: dotnet restore SproutLang/SproutLang.sln
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build SproutLang/SproutLang.sln --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test --no-build --configuration Release --verbosity normal
+        run: dotnet test SproutLang/SproutLang.sln --no-build --configuration Release --verbosity normal
