@@ -56,7 +56,7 @@ public class ASTParserTests
             Assert.Equal("x", stmt.Name.Spelling);
 
             var literal = Assert.IsType<IntLiteralExpression>(stmt.Expr);
-            Assert.Equal(42, literal.Lieteral.Value);
+            Assert.Equal(42, literal.Literal.Value);
         }
 
         [Fact]

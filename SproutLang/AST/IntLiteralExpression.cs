@@ -2,9 +2,9 @@ namespace SproutLang.AST;
 
 public class IntLiteralExpression: Expression
 {
-    public IntLiteral Lieteral { get; }
-    public IntLiteralExpression(IntLiteral lieteral)
+    public IntLiteral Literal { get; }
+    public IntLiteralExpression(IntLiteral literal)
     {
-        Lieteral = lieteral;
+        Literal = literal;
     }
 }
