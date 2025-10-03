@@ -1,10 +1,10 @@
 namespace SproutLang.AST;
 
-public class ArrayAssigment: LValue
+public class ArrayAssignment: LValue
 {
     public Identifier Name;
     public Expression Index;
-    public ArrayAssigment(Identifier name, Expression index)
+    public ArrayAssignment(Identifier name, Expression index)
     {
         Name = name;
         Index = index;

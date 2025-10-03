@@ -26,7 +26,7 @@ public static class ASTPrinter
                 Print(assign.Expr, indent + (isLast ? "    " : "│   "), true);
                 break;
 
-            case ArrayAssigment assign:
+            case ArrayAssignment assign:
                 Console.WriteLine($"ArrayAssignment {assign.Name.Spelling}");
                 Print(assign.Index, indent + (isLast ? "    " : "│   "), true);
                 break;
