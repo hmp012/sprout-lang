@@ -2,7 +2,7 @@ using System.Text;
 
 namespace SproutLang.Scanner;
 
-public class Scanner
+public class Scanner : IScanner
 {
     private SourceFile _sourceFile;
     
@@ -16,7 +16,7 @@ public class Scanner
         currentChar = sourceFile.GetSource();
     }
     
-    private void takeIt()
+    private void TakeIt()
     {
         currentSpelling.Append(currentChar);
         currentChar = _sourceFile.GetSource();
@@ -27,21 +27,21 @@ public class Scanner
        switch (currentChar)
        {
            case '#':
-            takeIt();
+            TakeIt();
             while ( currentChar != SourceFile.EOL && currentChar != SourceFile.EOT )
             {
-                takeIt();
+                TakeIt();
             }
             if ( currentChar == SourceFile.EOL )
             {
-                takeIt();
+                TakeIt();
             }
             break;
            case ' ': 
            case '\n': 
            case '\r': 
            case '\t':
-               takeIt();
+               TakeIt();
                break;
        }
     }
@@ -60,10 +60,10 @@ public class Scanner
     {
         if (isLetter(currentChar))
         {
-            takeIt();
+            TakeIt();
             while ( isLetter(currentChar) || isDigit(currentChar) )
             {
-                takeIt();
+                TakeIt();
             }
 
             string spelling = currentSpelling.ToString();
@@ -77,10 +77,10 @@ public class Scanner
         }
         else if (isDigit(currentChar))
         {
-            takeIt();
+            TakeIt();
             while (isDigit(currentChar))
             {
-                takeIt();
+                TakeIt();
             }
 
             return TokenKind.IntLiteral;
@@ -89,38 +89,38 @@ public class Scanner
         switch (currentChar)
         {
             case '+':
-                takeIt();
+                TakeIt();
                 return TokenKind.Plus;
             case '-':
-                takeIt();
+                TakeIt();
                 return TokenKind.Minus;
             case '*':
-                takeIt();
+                TakeIt();
                 return TokenKind.Multiply;
             case '/':
-                takeIt();
+                TakeIt();
                 return TokenKind.Divide;
             case '=':
-                takeIt();
+                TakeIt();
                 if (currentChar == '=')
                 {
-                    takeIt();
+                    TakeIt();
                     return TokenKind.Equals;  // ==
                 }
                 return TokenKind.Assign;  // =
             case '!':
-                takeIt();
+                TakeIt();
                 if (currentChar == '=')
                 {
-                    takeIt();
+                    TakeIt();
                     return TokenKind.NotEquals;  // !=
                 }
                 return TokenKind.Not;  // !
             case '&':
-                takeIt();
+                TakeIt();
                 if (currentChar == '&')
                 {
-                    takeIt();
+                    TakeIt();
                     return TokenKind.And;  // &&
                 }
                 else
@@ -128,10 +128,10 @@ public class Scanner
                     return TokenKind.Error;
                 }
             case '|':
-                takeIt();
+                TakeIt();
                 if (currentChar == '|')
                 {
-                    takeIt();
+                    TakeIt();
                     return TokenKind.Or;  // ||
                 }
                 else
@@ -139,39 +139,39 @@ public class Scanner
                     return TokenKind.Error;
                 }
             case ',':
-                takeIt();
+                TakeIt();
                 return TokenKind.Comma;
             case ';':
-                takeIt();
+                TakeIt();
                 return TokenKind.Semicolon;
             case '(':
-                takeIt();
+                TakeIt();
                 return TokenKind.LParenthesis;
             case ')':
-                takeIt();
+                TakeIt();
                 return TokenKind.RParenthesis;
             case '[':
-                takeIt();
+                TakeIt();
                 return TokenKind.LBracket;
             case ']':
-                takeIt();
+                TakeIt();
                 return TokenKind.RBracket;
             case '{':
-                takeIt();
+                TakeIt();
                 return TokenKind.LBrace;
             case '}':
-                takeIt();
+                TakeIt();
                 return TokenKind.RBrace;
             case '<':
-                takeIt();
+                TakeIt();
                 return TokenKind.LessThan;
             case '>':
-                takeIt();
+                TakeIt();
                 return TokenKind.GreaterThan;
             case SourceFile.EOT:
                 return TokenKind.EOT;
             default:
-                takeIt();
+                TakeIt();
                 return TokenKind.Error;
         }
     }

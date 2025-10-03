@@ -1,0 +1,15 @@
+namespace SproutLang.AST;
+
+public sealed class SubRoutineDeclar : Statement
+{
+    public Identifier Name { get; }
+    public List<Param> Params { get; }
+    public Block Body { get; }
+
+    public SubRoutineDeclar(Identifier name, List<Param> parameters, Block body)
+    {
+        Name = name;
+        Params = parameters;
+        Body = body;
+    }
+}
