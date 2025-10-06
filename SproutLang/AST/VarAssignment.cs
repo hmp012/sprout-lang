@@ -1,6 +1,6 @@
 namespace SproutLang.AST;
 
-public class VarAssignment: LValue
+public class VarAssignment: Assignment
 {
     public Identifier Name { get; }
     public Expression Expr { get; }

@@ -75,8 +75,6 @@ public class ASTParser
         }
 
         name = ParseIdentifier();
-        Accept(TokenKind.Assign);
-        ParseExpression(); // Initializer ignored for now
         Accept(TokenKind.Semicolon);
 
         return new VarDecl(type, name);

@@ -1,6 +1,6 @@
 namespace SproutLang.AST;
 
-public sealed class IfBranch: AST
+public sealed class IfBranch: Statement
 {
     public Expression Condition {get;}
     public Block Block {get;}
