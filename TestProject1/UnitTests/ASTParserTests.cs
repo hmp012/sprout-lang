@@ -36,7 +36,7 @@ public class ASTParserTests
     [Fact]
         public void Parse_VarDecl_ShouldBuildVarDeclNode()
         {
-            string code = "create int x = 5;";
+            string code = "create int x;";
             var program = AssertParses(code);
 
             Assert.Single(program.Block.Statements);
@@ -141,7 +141,7 @@ public class ASTParserTests
         [Fact]
         public void ASTPrinter_ShouldPrintSimpleVarDecl()
         {
-            string code = "create int x = 5;";
+            string code = "create int x; si (x > 0) { vomit x; } sino { vomit 0; }";
             var program = AssertParses(code);
             
             using var sw = new StringWriter();

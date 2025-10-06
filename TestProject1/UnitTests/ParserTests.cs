@@ -44,11 +44,11 @@ public class ParserTests
 
     [Fact]
     public void VariableDeclarationWithType() =>
-        AssertParses("create int x = 42;");
+        AssertParses("create int x;");
 
     [Fact]
     public void ArrayVariableDeclaration() =>
-        AssertParses("create [int, 10] arr = 0;");
+        AssertParses("create [int, 10] arr;");
 
     [Fact]
     public void VariableAssignment() =>
@@ -68,20 +68,21 @@ public class ParserTests
 
     [Fact]
     public void BlockStatement() =>
-        AssertParses("{ create int x = 5; vomit x; }");
+        AssertParses("{ create int x; x = 5;  vomit x; }");
 
     [Fact]
     public void WhileLoop() =>
         AssertParses("repeat (x < 10) { x = x + 1; }");
 
     [Fact]
-    public void ExpressionWithOperators() =>
-        AssertParses("create int result = x + y * 2;");
+    public void ExpressionWithOperators_Not_Valid() =>
+        AssertFails("create int result = x * (y + 2) - 5 / z;");
 
     [Fact]
     public void ComplexProgram() =>
         AssertParses(@"
-create int number = 42;
+create int number;
+number = 42;
 vomit number + 8;
 repeat (number < 10) {
     number = number + 1;

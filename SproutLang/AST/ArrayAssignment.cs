@@ -1,6 +1,6 @@
 namespace SproutLang.AST;
 
-public class ArrayAssignment: LValue
+public class ArrayAssignment: Assignment
 {
     public Identifier Name;
     public Expression Index;

@@ -1,6 +1,6 @@
 namespace SproutLang.AST;
 
-public sealed class SubRoutineDeclar : Statement
+public sealed class SubRoutineDeclar : Declaration
 {
     public Identifier Name { get; }
     public List<Param> Params { get; }

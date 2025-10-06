@@ -87,9 +87,6 @@ public class Parser
             ParseType();
             ParseIdentifier();
         }
-
-        Accept(TokenKind.Assign);
-        ParseExpression();
         Accept(TokenKind.Semicolon);
     }
 
