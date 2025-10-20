@@ -8,4 +8,9 @@ public class BoolLiteral: Terminal
     {
         Value = value;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitBoolLiteral(this, arg);
+    }
 }

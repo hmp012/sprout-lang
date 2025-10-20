@@ -9,4 +9,9 @@ public sealed class Block : AST
     {
         Statements = statements;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitBlock(this, arg);
+    }
 }
