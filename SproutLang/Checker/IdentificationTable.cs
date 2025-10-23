@@ -1,9 +1,11 @@
 using SproutLang.AST;
+using Microsoft.Extensions.Logging;
 
 namespace SproutLang.Checker;
 
 public class IdentificationTable
 {
+    private readonly ILogger<IdentificationTable> _logger;
     private List<IdEntry> Table { get; set; } = new List<IdEntry>();
     private int Level { get; set; } = 0;
     
@@ -14,17 +16,17 @@ public class IdentificationTable
     
     public void CloseScope()
     {
-        Table.RemoveAll(entry => entry.level == Level);
+        Table.RemoveAll(entry => entry.Level == Level);
         Level--;
     }
 
     public void Enter(string id, Declaration declaration)
     {
-        IdEntry? entry = Find( id );
+        IdEntry? entry = Find(id);
 
-        if (entry != null && entry.level == Level)
+        if (entry != null && entry.Level == Level)
         {
-            Console.WriteLine(id + " declared twice");
+            _logger.LogError("Identifier '{Id}' is already declared in the current scope at level {Level}", id, Level);
         }
         else
         {
@@ -32,13 +34,13 @@ public class IdentificationTable
         }
     }
     
-    public Declaration? Retrieve( String id )
+    public Declaration? Retrieve( string id )
     {
-        return Find( id )?.declaration;
+        return Find( id )?.Declaration;
     }
     
-    private IdEntry? Find( String id )
+    private IdEntry? Find( string id )
     {
-        return Table.Find(i => i.id == id);
+        return Table.FindLast(i => i.Id == id);
     }
 }
