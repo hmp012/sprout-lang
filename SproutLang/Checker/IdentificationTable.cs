@@ -6,6 +6,12 @@ namespace SproutLang.Checker;
 public class IdentificationTable
 {
     private readonly ILogger<IdentificationTable> _logger;
+
+    public IdentificationTable(ILogger<IdentificationTable> logger)
+    {
+        _logger = logger;
+    }
+
     private List<IdEntry> Table { get; set; } = new List<IdEntry>();
     private int Level { get; set; } = 0;
     
