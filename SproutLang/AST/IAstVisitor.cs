@@ -18,6 +18,12 @@ public interface IAstVisitor
     object VisitOperator(Operator n, object arg);
     object VisitParam(Param n, object arg);
     object VisitSimpleType(SimpleType n, object arg);
+    object VisitVomitStatement(VomitStatement n, object arg);
+    object VisitListenStatement(ListenStatement n, object arg);
+    
+    object VisitSubRoutineDecl(SubRoutineDeclar n, object arg);
+    object VisitCallStatement(CallStatement n, object arg);
+    
 
     // ---------- Expressions ----------
     object VisitExpression(Expression n, object arg); // generic catch-all

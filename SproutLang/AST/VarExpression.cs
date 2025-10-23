@@ -8,4 +8,9 @@ public sealed class VarExpression: Expression
     {
         Name = name;
     }
+    
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitVarExpression(this, arg);
+    }
 }

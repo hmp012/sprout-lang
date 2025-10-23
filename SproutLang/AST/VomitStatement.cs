@@ -8,4 +8,8 @@ public class VomitStatement: Statement
         Expression = expression;
     }
     
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitVomitStatement(this, arg);
+    }
 }

@@ -9,4 +9,8 @@ public class UnaryExpr : Expression
         Operator = op;
         Operand = operand;
     }
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitUnaryExpr(this, arg);
+    }
 }
