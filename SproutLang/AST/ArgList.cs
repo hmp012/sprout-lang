@@ -8,4 +8,9 @@ public class ArgList: AST
     {
         Arguments = new List<Expression>();
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitArgList(this, arg);
+    }
 }

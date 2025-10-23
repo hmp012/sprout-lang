@@ -9,4 +9,9 @@ public class Param :AST
         Type = type;
         Name = name;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitParam(this, arg);
+    }
 }

@@ -10,4 +10,9 @@ public class RepeatTimes: LoopStatement
         Times = times;
         Body = body;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitRepeatTimes(this, arg);
+    }
 }

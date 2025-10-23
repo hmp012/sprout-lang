@@ -8,4 +8,10 @@ public class CharLiteralExpression: Expression
     {
         Literal = literal;
     } 
+    
+    
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitCharLiteralExpression(this, arg);
+    }
 }

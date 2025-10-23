@@ -7,4 +7,9 @@ public class IntLiteral:  Terminal
     {
         Value = value;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitIntLiteral(this, arg);
+    }
 }

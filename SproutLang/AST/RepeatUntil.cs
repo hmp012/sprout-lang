@@ -9,4 +9,9 @@ public class RepeatUntil: LoopStatement
         Condition = condition;
         Body = body;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitRepeatUntil(this, arg);
+    }
 }

@@ -8,4 +8,9 @@ public class Program: AST
     {
         Block = block;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitProgram(this, arg);
+    }
 }

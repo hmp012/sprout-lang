@@ -7,5 +7,9 @@ public class CharLiteral : Terminal
     {
         Value = value;
     }
-    
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitCharLiteral(this, arg);
+    }
 }

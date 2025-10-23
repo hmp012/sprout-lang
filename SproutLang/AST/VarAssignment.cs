@@ -10,4 +10,9 @@ public class VarAssignment: Assignment
         Name = name;
         Expr = expr;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitVarAssignment(this, arg);
+    }
 }
