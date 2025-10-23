@@ -1,6 +1,4 @@
-﻿using System.Linq.Expressions;
-
-namespace SproutLang.AST;
+﻿namespace SproutLang.AST;
 
 public interface IAstVisitor
 {
