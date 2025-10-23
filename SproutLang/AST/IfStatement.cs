@@ -12,4 +12,9 @@ public class IfStatement: Statement
         ElseIfBranches = elseIfBranches;
         ElseBlock = elseBlock;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitIfStatement(this, arg);
+    }
 }

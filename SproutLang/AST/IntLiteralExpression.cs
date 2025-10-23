@@ -7,4 +7,9 @@ public class IntLiteralExpression: Expression
     {
         Literal = literal;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitIntLiteralExpression(this, arg);
+    }
 }

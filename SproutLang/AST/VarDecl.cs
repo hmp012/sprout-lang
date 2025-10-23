@@ -10,4 +10,9 @@ public sealed class VarDecl :  Declaration
         Type = type;
         Name = identifier;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitVarDecl(this, arg);
+    }
 }

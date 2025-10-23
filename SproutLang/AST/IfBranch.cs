@@ -9,4 +9,9 @@ public sealed class IfBranch: Statement
         Condition = condition;
         Block = block;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitIfBranch(this, arg);
+    }
 }

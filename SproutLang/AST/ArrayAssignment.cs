@@ -9,4 +9,9 @@ public class ArrayAssignment: Assignment
         Name = name;
         Index = index;
     }
+
+    public override object Visit(IAstVisitor v, object arg)
+    {
+        return v.VisitArrayAssignment(this, arg);
+    }
 }
