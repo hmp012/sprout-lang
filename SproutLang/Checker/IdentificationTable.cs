@@ -22,8 +22,11 @@ public class IdentificationTable
     
     public void CloseScope()
     {
-        Table.RemoveAll(entry => entry.Level == Level);
-        Level--;
+        if (Level > 0)
+        {
+            Table.RemoveAll(entry => entry.Level == Level);
+            Level--;
+        }
     }
 
     public void Enter(string id, Declaration declaration)
