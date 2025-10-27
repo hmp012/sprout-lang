@@ -43,9 +43,16 @@ public class IdentificationTable
         }
     }
     
-    public Declaration? Retrieve( string id )
+    public Declaration? Retrieve(string id)
     {
-        return Find( id )?.Declaration;
+        Declaration? declaration = Find(id)?.Declaration;
+        
+        if (declaration == null)
+        {
+            _logger.LogError("Identifier '{Id}' is not declared in the current scope", id);
+        }
+        
+        return declaration;
     }
     
     private IdEntry? Find( string id )
