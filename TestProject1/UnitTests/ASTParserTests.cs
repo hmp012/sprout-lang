@@ -134,7 +134,7 @@ public class ASTParserTests
             var program = AssertParses(code);
 
             var call = Assert.IsType<CallStatement>(program.Block.Statements[0]);
-            Assert.Equal("print", call.Call.Callee);
+            Assert.Equal("print", call.Call.Callee.Spelling);
             Assert.Equal(2, call.Call.Arguments.Arguments.Count);
         }
         
