@@ -2,6 +2,7 @@
 <project version="4">
   <component name="UserContentModel">
     <attachedFolders>
+      <Path>../../CMC</Path>
       <Path>../../sprout-lang</Path>
     </attachedFolders>
     <explicitIncludes />
