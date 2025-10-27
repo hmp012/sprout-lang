@@ -97,7 +97,7 @@ public class ASTParser
             var args = ParseArguments();
             Accept(TokenKind.RParenthesis);
             Accept(TokenKind.Semicolon);
-            return new CallStatement(new CallExpr(id.Spelling, args));
+            return new CallStatement(new CallExpr(new Identifier(id.Spelling), args));
         }
         else
         {
@@ -213,7 +213,7 @@ public class ASTParser
         var args = ParseArguments();
         Accept(TokenKind.RParenthesis);
         Accept(TokenKind.Semicolon);
-        return new CallStatement(new CallExpr(id.Spelling, args));
+        return new CallStatement(new CallExpr(new Identifier(id.Spelling), args));
     }
 
     private ArgList ParseArguments()
@@ -395,7 +395,7 @@ public class ASTParser
             Accept(TokenKind.LParenthesis);
             var args = ParseArguments();
             Accept(TokenKind.RParenthesis);
-            return new CallExpr(id.Spelling, args);
+            return new CallExpr(new Identifier(id.Spelling), args);
         }
 
         return new VarExpression(new Identifier(id.Spelling));

@@ -5,9 +5,9 @@ namespace SproutLang.Checker;
 
 public class IdentificationTable
 {
-    private readonly ILogger<IdentificationTable> _logger;
+    private readonly ILogger _logger;
 
-    public IdentificationTable(ILogger<IdentificationTable> logger)
+    public IdentificationTable(ILogger logger)
     {
         _logger = logger;
     }
@@ -43,13 +43,21 @@ public class IdentificationTable
         }
     }
     
-    public Declaration? Retrieve( string id )
+    public Declaration? Retrieve(string id)
     {
-        return Find( id )?.Declaration;
+        return Find(id)?.Declaration;
     }
     
     private IdEntry? Find( string id )
     {
         return Table.FindLast(i => i.Id == id);
     }
+
+    private bool FindFunction(string name)
+    {
+        return true;
+    }
+    
+    //TODO add handling if nothing is found 
+    
 }

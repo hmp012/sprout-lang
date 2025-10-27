@@ -2,10 +2,10 @@ namespace SproutLang.AST;
 
 public class CallExpr:  Expression
 {
-    public string Callee { get; }
+    public Identifier Callee { get; }
     public ArgList Arguments { get; }
 
-    public CallExpr(string callee, ArgList arguments)
+    public CallExpr(Identifier callee, ArgList arguments)
     {
         Callee = callee;
         Arguments = arguments;
