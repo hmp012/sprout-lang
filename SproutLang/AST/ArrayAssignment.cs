@@ -1,14 +1,10 @@
 namespace SproutLang.AST;
 
-public class ArrayAssignment: Assignment
+public class ArrayAssignment(Identifier name, Expression index) : Assignment
 {
-    public Identifier Name;
-    public Expression Index;
-    public ArrayAssignment(Identifier name, Expression index)
-    {
-        Name = name;
-        Index = index;
-    }
+    public Identifier Name = name;
+    public Expression Index = index;
+    public Expression? Expr;
 
     public override object? Visit(IAstVisitor v, object? arg)
     {

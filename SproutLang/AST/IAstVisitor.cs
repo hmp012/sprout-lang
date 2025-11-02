@@ -29,16 +29,16 @@ public interface IAstVisitor
     object VisitCallStatement(CallStatement callStatement, object? arg);
     
     // ---------- Declarations ----------
-    object? VisitDeclaration(Declaration declaration, object? arg);
-    object? VisitVarDecl(VarDecl varDecl, object? arg);
+    object VisitDeclaration(Declaration n, object arg);
+    object VisitVarDecl(VarDecl n, object arg);
 
     // ---------- Expressions ----------
-    object? VisitExpression(Expression expression, object?  arg); // generic catch-all
-    object VisitBinaryExpr(BinaryExpr binaryExpr, object? arg);
-    object VisitUnaryExpr(UnaryExpr unaryExpr, object? arg);
-    object VisitIntLiteralExpression(IntLiteralExpression intLiteralExpression, object? arg);
-    object VisitBoolLiteralExpression(BoolLiteralExpression boolLiteralExpression, object? arg);
-    object VisitCharLiteralExpression(CharLiteralExpression charLiteralExpression, object? arg);
-    object VisitVarExpression(VarExpression varExpression, object? arg);
-    object VisitCallExpr(CallExpr callExpr, object? arg);
+    object VisitExpression(Expression n, object arg); // generic catch-all
+    object VisitBinaryExpr(BinaryExpr n, object arg);
+    object VisitUnaryExpr(UnaryExpr n, object arg);
+    object VisitIntLiteralExpression(IntLiteralExpression n, object arg);
+    object VisitBoolLiteralExpression(BoolLiteralExpression n, object arg);
+    object VisitCharLiteralExpression(CharLiteralExpression n, object arg);
+    object VisitVarExpression(VarExpression n, object arg);
+    object VisitCallExpr(CallExpr n, object arg);
 }
