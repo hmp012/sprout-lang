@@ -54,26 +54,30 @@ public class ASTParser
         };
     }
 
-    private VarDecl ParseDeclaration()
+    private Declaration ParseDeclaration()
     {
         Accept(TokenKind.Create);
 
-        TypeSpec type;
         Identifier name;
 
         if (_currentToken.Kind == TokenKind.LBracket)
         {
             Accept(TokenKind.LBracket);
-            type = ParseType();
+            SimpleType elementType = ParseType() as SimpleType
+                                     ?? throw new Exception("Expected simple type for array element");
             Accept(TokenKind.Comma);
-            Accept(TokenKind.IntLiteral); // size not stored in AST here
+            int size = int.Parse(_currentToken.Spelling);
+            Accept(TokenKind.IntLiteral);
             Accept(TokenKind.RBracket);
-        }
-        else
-        {
-            type = ParseType();
+
+            ArrayType arrayType = new ArrayType(elementType.Kind, size);
+            name = ParseIdentifier();
+            Accept(TokenKind.Semicolon);
+
+            return new ArrayDecl(arrayType, name);
         }
 
+        var type = ParseType();
         name = ParseIdentifier();
         Accept(TokenKind.Semicolon);
 
@@ -84,6 +88,20 @@ public class ASTParser
     {
         Identifier id = ParseIdentifier();
 
+        if (_currentToken.Kind == TokenKind.LBracket)
+        {
+            Accept(TokenKind.LBracket);
+            Expression index = ParseExpression();
+            Accept(TokenKind.RBracket);
+            Accept(TokenKind.Assign);
+            Expression expr = ParseExpression();
+            Accept(TokenKind.Semicolon);
+
+            ArrayAssignment arrayAssignment = new ArrayAssignment(id, index);
+            arrayAssignment.Expr = expr;
+            return arrayAssignment;
+        }
+
         if (_currentToken.Kind == TokenKind.Assign)
         {
             Accept(TokenKind.Assign);
@@ -91,7 +109,7 @@ public class ASTParser
             Accept(TokenKind.Semicolon);
             return new VarAssignment(id, expr);
         }
-        else if (_currentToken.Kind == TokenKind.LParenthesis)
+        if (_currentToken.Kind == TokenKind.LParenthesis)
         {
             Accept(TokenKind.LParenthesis);
             var args = ParseArguments();
@@ -99,10 +117,8 @@ public class ASTParser
             Accept(TokenKind.Semicolon);
             return new CallStatement(new CallExpr(id.Spelling, args));
         }
-        else
-        {
-            throw new Exception("Invalid assignment or call.");
-        }
+
+        throw new Exception("Invalid assignment or call.");
     }
 
     private IfStatement ParseIfStatement()
@@ -114,7 +130,7 @@ public class ASTParser
         Block thenBlock = ParseBlock();
 
         var first = new IfBranch(condition, thenBlock);
-        
+
         var elseIfs = new List<IfBranch>();
         while (_currentToken.Kind == TokenKind.O)
         {
@@ -228,6 +244,7 @@ public class ASTParser
                 args.Arguments.Add(ParseExpression());
             }
         }
+
         return args;
     }
 
@@ -239,6 +256,7 @@ public class ASTParser
         {
             statements.Add(ParseOneStatement());
         }
+
         Accept(TokenKind.RBrace);
         return new Block(statements);
     }
@@ -252,7 +270,7 @@ public class ASTParser
     private Expression ParseLogicalOrExpression()
     {
         Expression left = ParseLogicalAndExpression();
-        
+
         while (_currentToken.Kind == TokenKind.Or)
         {
             Accept(TokenKind.Or);
@@ -263,7 +281,7 @@ public class ASTParser
 
         return left;
     }
-    
+
     private Expression ParseLogicalAndExpression()
     {
         Expression left = ParseEqualityExpression();
@@ -283,7 +301,7 @@ public class ASTParser
     private Expression ParseEqualityExpression()
     {
         Expression left = ParseRelationalExpression();
-        
+
         while (_currentToken.Kind == TokenKind.Equals || _currentToken.Kind == TokenKind.NotEquals)
         {
             var op = _currentToken.Kind == TokenKind.Equals ? "==" : "!=";
@@ -291,6 +309,7 @@ public class ASTParser
             Expression right = ParseRelationalExpression();
             left = new BinaryExpr(left, new Operator(op), right);
         }
+
         return left;
     }
 
@@ -315,7 +334,8 @@ public class ASTParser
     {
         Expression left = ParseMultiplicativeExpression(); // Changed from ParseUnaryExpression
 
-        while (_currentToken.Kind == TokenKind.Plus || _currentToken.Kind == TokenKind.Minus) // Changed from Multiply/Divide
+        while (_currentToken.Kind == TokenKind.Plus ||
+               _currentToken.Kind == TokenKind.Minus) // Changed from Multiply/Divide
         {
             var op = _currentToken.Kind == TokenKind.Plus ? "+" : "-";
             Accept(_currentToken.Kind);
@@ -392,10 +412,19 @@ public class ASTParser
 
         if (_currentToken.Kind == TokenKind.LParenthesis)
         {
+            // Function call
             Accept(TokenKind.LParenthesis);
             var args = ParseArguments();
             Accept(TokenKind.RParenthesis);
             return new CallExpr(id.Spelling, args);
+        }
+        else if (_currentToken.Kind == TokenKind.LBracket)
+        {
+            // Array indexing expression
+            Accept(TokenKind.LBracket);
+            Expression index = ParseExpression();
+            Accept(TokenKind.RBracket);
+            return new ArrayExpression(id, index);
         }
 
         return new VarExpression(new Identifier(id.Spelling));
@@ -409,6 +438,7 @@ public class ASTParser
         Accept(TokenKind.RParenthesis);
         return expr;
     }
+
     private TypeSpec ParseType()
     {
         switch (_currentToken.Kind)
@@ -436,11 +466,13 @@ public class ASTParser
 
     private bool IsStarterOfStatement(TokenKind kind)
     {
-        return kind is TokenKind.Create or TokenKind.Identifier or TokenKind.Si or TokenKind.Repeat or TokenKind.Vomit or TokenKind.ListenCarefully or TokenKind.Bloom or TokenKind.Sprout or TokenKind.LBrace;
+        return kind is TokenKind.Create or TokenKind.Identifier or TokenKind.Si or TokenKind.Repeat or TokenKind.Vomit
+            or TokenKind.ListenCarefully or TokenKind.Bloom or TokenKind.Sprout or TokenKind.LBrace;
     }
 
     private bool IsStarterOfExpression(TokenKind kind)
     {
-        return kind is TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral or TokenKind.Identifier or TokenKind.LParenthesis or TokenKind.Not or TokenKind.Minus;
+        return kind is TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral or TokenKind.Identifier
+            or TokenKind.LParenthesis or TokenKind.Not or TokenKind.Minus;
     }
 }
