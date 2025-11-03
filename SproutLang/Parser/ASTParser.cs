@@ -97,9 +97,8 @@ public class ASTParser
             Accept(TokenKind.Assign);
             Expression expr = ParseExpression();
             Accept(TokenKind.Semicolon);
-            var intLiteralExpression = intLiteral as IntLiteralExpression;
 
-            if (intLiteralExpression != null)
+            if (intLiteral is IntLiteralExpression intLiteralExpression)
             {
                 ArrayAssignment arrayAssignment = new ArrayAssignment(id, intLiteralExpression, expr);
                 return arrayAssignment;
