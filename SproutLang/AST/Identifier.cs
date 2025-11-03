@@ -6,7 +6,7 @@ public class Identifier : Terminal
     {
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitIdentifier(this, arg);
     }

@@ -12,7 +12,7 @@ public sealed class SubRoutineDeclar : Declaration
         Params = parameters;
         Body = body;
     }
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitSubRoutineDecl(this, arg);
     }

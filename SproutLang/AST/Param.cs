@@ -10,7 +10,7 @@ public class Param :Declaration
         Name = name;
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitParam(this, arg);
     }

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using SproutLang.AST;
 
@@ -12,14 +11,14 @@ public class Checker : IAstVisitor
     
     public Checker(ILogger logger)
     {
-        _identificationTable = _identificationTable = new IdentificationTable(logger);
+        _identificationTable = new IdentificationTable(logger);
         _logger = logger;
     }
     public void Check(AST.Program program)
     {
         program.Visit(this, null!);
     }
-    public object VisitProgram(AST.Program program, object arg)
+    public object VisitProgram(AST.Program program, object? arg)
     {
         _identificationTable.OpenScope();
         
@@ -31,29 +30,32 @@ public class Checker : IAstVisitor
         
     }
 
-    public object? VisitBlock(Block block, object arg)
+    public object? VisitBlock(Block block, object? arg)
     {
         block.Statements.ForEach(statement => statement.Visit(this, null!));
         return null;
     }
 
-    public object? VisitArgList(ArgList argList, object arg)
+    public object VisitArgList(ArgList argList, object? arg)
     {
+        var types = new List<BaseType?>();
+        
         foreach (var expr in argList.Arguments)
         {
-            expr.Visit(this, arg);
+            var result = expr.Visit(this, arg) as TypeResult;
+            types.Add(result?.Type);
         }
 
-        return null;
+        return types;
     }
 
-    public object? VisitStatement(Statement statement, object arg)
+    public object? VisitStatement(Statement statement, object? arg)
     {
         statement.Visit(this, arg);
         return null;
     }
 
-    public object VisitIfStatement(IfStatement ifStatement, object arg)
+    public object? VisitIfStatement(IfStatement ifStatement, object? arg)
     {
         ifStatement.First.Visit(this, arg); 
         
@@ -72,7 +74,7 @@ public class Checker : IAstVisitor
         return null;
     }
 
-    public object VisitIfBranch(IfBranch ifBranch, object arg)
+    public object? VisitIfBranch(IfBranch ifBranch, object? arg)
     {
         ifBranch.Condition.Visit(this, arg);
         _identificationTable.OpenScope();
@@ -81,14 +83,14 @@ public class Checker : IAstVisitor
         return null;
     }
 
-    public object? VisitRepeatTimes(RepeatTimes repeatTimes, object arg)
+    public object? VisitRepeatTimes(RepeatTimes repeatTimes, object? arg)
     {
         repeatTimes.Times.Visit(this, arg);
         repeatTimes.Body.Visit(this, arg);
         return null;
     }
 
-    public object? VisitRepeatUntil(RepeatUntil repeatUntil, object arg)
+    public object? VisitRepeatUntil(RepeatUntil repeatUntil, object? arg)
     {
         repeatUntil.Body.Visit(this, arg);
         repeatUntil.Condition.Visit(this, arg);
@@ -96,18 +98,18 @@ public class Checker : IAstVisitor
         return null;
     }
 
-    public object? VisitVarAssignment(VarAssignment varAssignment, object arg)
+    public object? VisitVarAssignment(VarAssignment varAssignment, object? arg)
     {
-        var id = varAssignment.Name.Visit(this, arg).ToString();
+        var id = varAssignment.Name.Visit(this, arg)?.ToString();
         if (id != null)
         {
             var varDecl = _identificationTable.Retrieve(id);
             if (varDecl is VarDecl vd)
             {
                 var declaredType = (vd.Type as SimpleType)?.Kind;
-                var exprResult = (TypeResult)varAssignment.Expr.Visit(this, arg);
+                var exprResult = varAssignment.Expr.Visit(this, arg) as TypeResult;
 
-                if (declaredType != null && exprResult.Type != null)
+                if (declaredType != null && exprResult != null && exprResult.Type != null)
                 {
                     if (declaredType != exprResult.Type)
                     {
@@ -118,7 +120,7 @@ public class Checker : IAstVisitor
             }
             else
             {
-                _logger.LogError("Variable '{Id}' not declared.", id);
+                _logger.LogError("Variable '{Id}' not declared as a variable", id);
             }
         }
 
@@ -127,73 +129,77 @@ public class Checker : IAstVisitor
         return null;
     }
 
-    public object? VisitArrayAssignment(ArrayAssignment arrayAssignment, object arg)
+    public object? VisitArrayAssignment(ArrayAssignment arrayAssignment, object? arg)
     {
-        var id = arrayAssignment.Name.Visit(this, arg).ToString();
+        var id = arrayAssignment.Name.Visit(this, arg)?.ToString();
         if (id != null)
         {
-            var varDecl = _identificationTable.Retrieve(id);
+            // Variable is intentionally unused for now - placeholder for future implementation
+            var _ = _identificationTable.Retrieve(id);
         }
 
         return null;
     }
 
-    public object? VisitBoolLiteral(BoolLiteral boolLiteral, object arg)
+    public object? VisitBoolLiteral(BoolLiteral boolLiteral, object? arg)
     {
         return null;
     }
 
-    public object? VisitCharLiteral(CharLiteral charLiteral, object arg)
+    public object? VisitCharLiteral(CharLiteral charLiteral, object? arg)
     {
         return null;
     }
 
-    public object VisitIdentifier(Identifier identifier, object arg)
+    public object VisitIdentifier(Identifier identifier, object? arg)
     {
         return identifier.Spelling;
     }
 
-    public object? VisitIntLiteral(IntLiteral intLiteral, object arg)
+    public object? VisitIntLiteral(IntLiteral intLiteral, object? arg)
     {
         return null;
     }
 
-    public object VisitOperator(Operator @operator, object arg)
+    public object VisitOperator(Operator @operator, object? arg)
     {
         return @operator.Spelling;
     }
 
-    public object? VisitParam(Param param, object arg)
+    public object? VisitParam(Param param, object? arg)
     {
         param.Name.Visit(this, arg);
-        param.Type?.Visit(this, arg);
+        param.Type.Visit(this, arg);
         
         _identificationTable.Enter(param.Name.Spelling, param);
         return null;
     }
 
-    public object VisitSimpleType(SimpleType simpleType, object arg)
+    public object VisitSimpleType(SimpleType simpleType, object? arg)
     {
         return simpleType;
     }
 
-    public object? VisitVomitStatement(VomitStatement vomitStatement, object arg)
+    public object? VisitVomitStatement(VomitStatement vomitStatement, object? arg)
     {
         vomitStatement.Expression.Visit(this, arg);
         return null;
     }
 
-    public object? VisitListenStatement(ListenStatement listenStatement, object arg)
+    public object? VisitListenStatement(ListenStatement listenStatement, object? arg)
     {
         listenStatement.Identifier.Visit(this, arg);
         return null;
     }
 
-    public object? VisitSubRoutineDecl(SubRoutineDeclar subRoutineDeclar, object arg)
+    public object? VisitSubRoutineDecl(SubRoutineDeclar subRoutineDeclar, object? arg)
     {
-        var id = subRoutineDeclar.Name.Visit(this, arg).ToString();
+        var id = subRoutineDeclar.Name.Visit(this, arg)?.ToString();
         
-        _identificationTable.Enter(id, subRoutineDeclar);
+        if (id != null)
+        {
+            _identificationTable.Enter(id, subRoutineDeclar);
+        }
 
         _identificationTable.OpenScope();
         
@@ -209,49 +215,52 @@ public class Checker : IAstVisitor
         return null;
     }
 
-    public object VisitCallStatement(CallStatement callStatement, object arg)
+    public object VisitCallStatement(CallStatement callStatement, object? arg)
     {
         throw new NotImplementedException();
     }
 
-    public object VisitDeclaration(Declaration declaration, object arg)
+    public object? VisitDeclaration(Declaration declaration, object? arg)
     {
         return declaration.Visit(this, arg);
     }
 
-    public object? VisitVarDecl(VarDecl varDecl, object arg)
+    public object? VisitVarDecl(VarDecl varDecl, object? arg)
     {
-        var id = varDecl.Name.Visit(this, arg).ToString();
+        var id = varDecl.Name.Visit(this, arg)?.ToString();
 
         varDecl.Type.Visit(this, arg);
         
-        _identificationTable.Enter(id, varDecl);
+        if (id != null)
+        {
+            _identificationTable.Enter(id, varDecl);
+        }
         
         return null;
 
     }
 
-    public object? VisitExpression(Expression expression, object arg)
+    public object? VisitExpression(Expression expression, object? arg)
     {
         expression.Visit(this, arg);
         return null;
     }
 
-    public object VisitBinaryExpr(BinaryExpr binaryExpr, object arg)
+    public object VisitBinaryExpr(BinaryExpr binaryExpr, object? arg)
     {
-        var leftResult = (TypeResult)binaryExpr.left.Visit(this, arg);
-        var rightResult = (TypeResult)binaryExpr.right.Visit(this, arg);
-        var exOp = binaryExpr.op.Visit(this, arg).ToString();
+        var leftResult = binaryExpr.left.Visit(this, arg) as TypeResult;
+        var rightResult = binaryExpr.right.Visit(this, arg) as TypeResult;
+        var exOp = binaryExpr.op.Visit(this, arg)?.ToString();
         
         
-        if (exOp.Equals("="))
+        if (exOp != null && exOp.Equals("="))
         {
-            if (!leftResult.IsLValue)
+            if (leftResult != null && !leftResult.IsLValue)
             {
                 _logger.LogError("Left operand of assignment must be an l-value.");
             }
 
-            if (leftResult.Type != null && rightResult.Type != null)
+            if (leftResult?.Type != null && rightResult?.Type != null)
             {
                 if (leftResult.Type != rightResult.Type)
                 {
@@ -260,10 +269,12 @@ public class Checker : IAstVisitor
                 }
             }
 
-            return new TypeResult(leftResult.Type, false);
+            return new TypeResult(leftResult?.Type, false);
         }
         
-        if (leftResult.Type != null && rightResult.Type != null)
+        var comparisonOperators = new HashSet<string?> { "==", "!=", "<", ">" };
+
+        if (leftResult?.Type != null && rightResult?.Type != null)
         {
             if (leftResult.Type != rightResult.Type)
             {
@@ -272,13 +283,15 @@ public class Checker : IAstVisitor
             }
         }
 
-        return new TypeResult(leftResult.Type, false);
+        var resultType = comparisonOperators.Contains(exOp) ? BaseType.Bool : leftResult?.Type;
+        
+        return new TypeResult(resultType, false);
     }
 
-    public object VisitUnaryExpr(UnaryExpr unaryExpr, object arg)
+    public object VisitUnaryExpr(UnaryExpr unaryExpr, object? arg)
     {
-        var operandResult = (TypeResult)unaryExpr.Operand.Visit(this, arg);
-        var op = unaryExpr.Operator.Visit(this, arg).ToString();
+        var operandResult = unaryExpr.Operand.Visit(this, arg) as TypeResult;
+        var op = unaryExpr.Operator.Visit(this, arg)?.ToString();
         var allowedUnaryOperators = new HashSet<string?> { "-", "+" };
 
         // The result of a unary operation (e.g., -x) is a calculated value.
@@ -289,31 +302,37 @@ public class Checker : IAstVisitor
             _logger.LogError($"Unary operand of unary operator must be allowed.Only allowed {allowedUnaryOperators}");
         }
         
-        return new TypeResult(operandResult.Type, isLValue: false);
+        return new TypeResult(operandResult?.Type, isLValue: false);
         
     }
 
-    public object VisitIntLiteralExpression(IntLiteralExpression intLiteralExpression, object arg)
+    public object VisitIntLiteralExpression(IntLiteralExpression intLiteralExpression, object? arg)
     {
         intLiteralExpression.Literal.Visit(this, arg);
         return new TypeResult( BaseType.Int, false);
     }
 
-    public object VisitBoolLiteralExpression(BoolLiteralExpression boolLiteralExpression, object arg)
+    public object VisitBoolLiteralExpression(BoolLiteralExpression boolLiteralExpression, object? arg)
     {
         boolLiteralExpression.Literal.Visit(this, arg);
         return new TypeResult(BaseType.Bool, false);
     }
 
-    public object VisitCharLiteralExpression(CharLiteralExpression charLiteralExpression, object arg)
+    public object VisitCharLiteralExpression(CharLiteralExpression charLiteralExpression, object? arg)
     {
         charLiteralExpression.Literal.Visit(this, arg);
         return new TypeResult(BaseType.Char, false);
     }
 
-    public object VisitVarExpression(VarExpression varExpression, object arg)
+    public object VisitVarExpression(VarExpression varExpression, object? arg)
     {
-        var id = varExpression.Name.Visit(this, arg).ToString();
+        var id = varExpression.Name.Visit(this, arg)?.ToString();
+        
+        if (id == null)
+        {
+            _logger.LogError("Variable name is null.");
+            return new TypeResult(null, false);
+        }
         
         var decl = _identificationTable.Retrieve(id);
 
@@ -325,7 +344,7 @@ public class Checker : IAstVisitor
         
         if (decl is Param param)
         {
-            var type = (param.Type as SimpleType)?.Kind;
+            var type = param.Type.Kind;
             return new TypeResult(type, true);
         }
         
@@ -333,10 +352,10 @@ public class Checker : IAstVisitor
         return new TypeResult(null, false);
     }
 
-    public object VisitCallExpr(CallExpr callExpr, object arg)
+    public object VisitCallExpr(CallExpr callExpr, object? arg)
     {
-        var id = callExpr.Callee.Visit(this, arg).ToString();
-        List<Type> args = (List<Type>)callExpr.Arguments.Visit(this, arg);
+        var id = callExpr.Callee.Visit(this, arg)?.ToString();
+        var args = callExpr.Arguments.Visit(this, arg) as List<BaseType?>;
 
         if (id != null)
         {
@@ -344,7 +363,7 @@ public class Checker : IAstVisitor
             
             if (declaration is SubRoutineDeclar subRoutineDeclar)
             {
-                if (subRoutineDeclar.Params.Count != args.Count)
+                if (args != null && subRoutineDeclar.Params.Count != args.Count)
                 {
                     _logger.LogError("Function '{Id}' called with incorrect number of arguments. Expected {Expected}, got {Actual}.", id, subRoutineDeclar.Params.Count, args.Count);
                 }

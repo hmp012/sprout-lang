@@ -8,7 +8,7 @@ public class BoolLiteralExpression: Expression
     {
         Literal = literal;
     }
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitBoolLiteralExpression(this, arg);
     }

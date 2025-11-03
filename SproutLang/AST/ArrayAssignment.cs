@@ -10,7 +10,7 @@ public class ArrayAssignment: Assignment
         Index = index;
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitArrayAssignment(this, arg);
     }

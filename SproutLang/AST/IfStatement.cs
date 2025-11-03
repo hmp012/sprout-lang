@@ -13,7 +13,7 @@ public class IfStatement: Statement
         ElseBlock = elseBlock;
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitIfStatement(this, arg);
     }

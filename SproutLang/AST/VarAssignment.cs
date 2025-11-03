@@ -11,7 +11,7 @@ public class VarAssignment: Assignment
         Expr = expr;
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitVarAssignment(this, arg);
     }

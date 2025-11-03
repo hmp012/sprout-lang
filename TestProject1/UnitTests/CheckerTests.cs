@@ -222,7 +222,7 @@ public class CheckerTests
             @"
             create int a;
             create int b;
-            a = 1 + 2;
+            a = b + 2;
             ";
         var errors = CheckCode(code);
         Assert.Empty(errors);
@@ -269,7 +269,114 @@ public class CheckerTests
         Assert.Contains("Type mismatch in assignment to 'y'. Expected Int, got Bool.", errors[0]);
 
     }
+    
+    [Fact]
+    public void Check_BinaryExpressionDifferentOperators_ShouldNotLogError()
+    {
+        var code = @"
+        create int a;
+        create int b;
+        create int result;
+        create bool boolResult;
+        
+        a = 10;
+        b = 5;
+        
+        result = a + b; 
+        result = a - b; 
+        result = a * b; 
+        result = a / b; 
+        
+        boolResult = a == b;  
+        boolResult = a != b;  
+        boolResult = a < b;   
+        boolResult = a > b;   
+        
+        boolResult = (a > 0) && (b > 0); 
+        boolResult = (a > 0) || (b > 0);  
+        ";
+        var errors = CheckCode(code);
+        Assert.Empty(errors);
+    }
 
+    [Fact]
+    public void Check_BinaryExpressionWithIncompatibleOperands_ShouldLogError()
+    {
+        var code = @"
+        create int a;
+        create bool b;
+        create int result;
+        create bool boolResult;
+        
+        a = 10;
+        b = true;
+        
+        result = a + b;
+        result = a - b;
+        result = a * b;
+        result = a / b;
+        
+        boolResult = a == b;
+        boolResult = a != b;
+        
+        boolResult = a && b;
+        boolResult = a || b;
+        ";
+        var errors = CheckCode(code);
+        Assert.NotEmpty(errors);
+        Assert.True(errors.Count > 0);
+    }
+
+    [Fact]
+    public void Check_ArithmeticOperatorWithBoolOperands_ShouldLogError()
+    {
+        var code = @"
+        create bool a;
+        create bool b;
+        create int result;
+        
+        a = true;
+        b = false;
+        result = a + b;
+        ";
+        var errors = CheckCode(code);
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Type mismatch") || e.Contains("type"));
+    }
+
+    [Fact]
+    public void Check_LogicalOperatorWithIntOperands_ShouldLogError()
+    {
+        var code = @"
+        create int a;
+        create int b;
+        create bool result;
+        
+        a = 5;
+        b = 10;
+        result = a && b;
+        ";
+        var errors = CheckCode(code);
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Type mismatch") || e.Contains("type"));
+    }
+
+    [Fact]
+    public void Check_ComparisonBetweenIntAndChar_ShouldLogError()
+    {
+        var code = @"
+        create int a;
+        create char b;
+        create bool result;
+        
+        a = 10;
+        b = 'x';
+        result = a == b;
+        ";
+        var errors = CheckCode(code);
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Type mismatch") || e.Contains("type"));
+    }
     
 
 //TODO: this should pass in the future once arrays are figured out 
@@ -290,4 +397,3 @@ public class CheckerTests
         Assert.Empty(errors);
     }*/
 }
-

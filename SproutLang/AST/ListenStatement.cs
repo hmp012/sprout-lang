@@ -7,7 +7,7 @@ public class ListenStatement: Statement
     {
         Identifier = identifier;
     }
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitListenStatement(this, arg);
     }
