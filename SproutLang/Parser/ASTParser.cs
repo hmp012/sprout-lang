@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using SproutLang.Scanner;
 using SproutLang.AST;
 
@@ -74,7 +75,7 @@ public class ASTParser
             name = ParseIdentifier();
             Accept(TokenKind.Semicolon);
 
-            return new ArrayDecl(arrayType, name);
+            return new VarDecl(arrayType, name);
         }
 
         var type = ParseType();
@@ -91,15 +92,19 @@ public class ASTParser
         if (_currentToken.Kind == TokenKind.LBracket)
         {
             Accept(TokenKind.LBracket);
-            Expression index = ParseExpression();
+            Expression intLiteral = ParseExpression();
             Accept(TokenKind.RBracket);
             Accept(TokenKind.Assign);
             Expression expr = ParseExpression();
             Accept(TokenKind.Semicolon);
+            var intLiteralExpression = intLiteral as IntLiteralExpression;
 
-            ArrayAssignment arrayAssignment = new ArrayAssignment(id, index);
-            arrayAssignment.Expr = expr;
-            return arrayAssignment;
+            if (intLiteralExpression != null)
+            {
+                ArrayAssignment arrayAssignment = new ArrayAssignment(id, intLiteralExpression, expr);
+                return arrayAssignment;
+            }
+            throw new Exception("Array index must be an integer literal.");
         }
 
         if (_currentToken.Kind == TokenKind.Assign)
@@ -109,6 +114,7 @@ public class ASTParser
             Accept(TokenKind.Semicolon);
             return new VarAssignment(id, expr);
         }
+
         if (_currentToken.Kind == TokenKind.LParenthesis)
         {
             Accept(TokenKind.LParenthesis);

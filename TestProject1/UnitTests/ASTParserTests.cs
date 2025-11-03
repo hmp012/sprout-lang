@@ -159,4 +159,19 @@ public class ASTParserTests
             Assert.Contains("SimpleType Int", output);
         }
         
+        [Fact]
+        public void ArrayAssignment()   
+        {
+            string code = "arr[2] = 10;";
+            var program = AssertParses(code);
+
+            var stmt = Assert.IsType<ArrayAssignment>(program.Block.Statements[0]);
+            Assert.Equal("arr", stmt.Name.Spelling);
+
+            var indexLiteral = Assert.IsType<IntLiteralExpression>(stmt.Index);
+            Assert.Equal(2, indexLiteral.Literal.Value);
+
+            var valueLiteral = Assert.IsType<IntLiteralExpression>(stmt.Expr);
+            Assert.Equal(10, valueLiteral.Literal.Value);
+        }
 }

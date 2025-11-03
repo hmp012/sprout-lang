@@ -31,7 +31,6 @@ public interface IAstVisitor
     
     // ---------- Declarations ----------
     object VisitDeclaration(Declaration n, object arg);
-    object VisitArrayDecl(ArrayDecl n, object arg);
     object VisitVarDecl(VarDecl n, object arg);
 
     // ---------- Expressions ----------
