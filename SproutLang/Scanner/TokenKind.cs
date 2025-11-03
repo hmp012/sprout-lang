@@ -5,6 +5,7 @@ public enum TokenKind
     // Literals
     IntLiteral,
     CharLiteral,
+    BoolLiteral,
     StringLiteral,
 
     // Identifiers

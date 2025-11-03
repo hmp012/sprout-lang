@@ -72,6 +72,8 @@ public class Scanner : IScanner
                 "int" => TokenKind.Int,
                 "bool" => TokenKind.Bool,
                 "char" => TokenKind.Char,
+                "true" => TokenKind.BoolLiteral,
+                "false" => TokenKind.BoolLiteral,
                 _ => TokenKind.Identifier
             };
         }
@@ -168,6 +170,23 @@ public class Scanner : IScanner
             case '>':
                 TakeIt();
                 return TokenKind.GreaterThan;
+            case '\'':
+                TakeIt(); // consume opening ' (adds it to spelling)
+    
+                if (currentChar != '\'' && currentChar != SourceFile.EOT)
+                {
+                    currentSpelling.Clear(); 
+                    currentSpelling.Append(currentChar); 
+                    currentChar = _sourceFile.GetSource(); 
+                }
+    
+                if (currentChar != '\'')
+                {
+                    return TokenKind.Error;
+                }
+    
+                currentChar = _sourceFile.GetSource(); // skip closing ' without adding it
+                return TokenKind.CharLiteral;
             case SourceFile.EOT:
                 return TokenKind.EOT;
             default:

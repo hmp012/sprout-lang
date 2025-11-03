@@ -21,7 +21,7 @@ public class Parser
         }
         else
         {
-            throw new Exception($"Expected {expectedKind}, but found {_currentToken.Kind}");
+            throw new ParserException($"Expected {expectedKind}, but found {_currentToken.Kind}");
         }
     }
 
@@ -292,7 +292,7 @@ public class Parser
                 Accept(TokenKind.RParenthesis);
                 break;
             default:
-                throw new Exception($"Unexpected token in primary expression: {_currentToken.Kind}");
+                throw new ParserException($"Unexpected token in primary expression: {_currentToken.Kind}");
         }
     }
 
@@ -334,7 +334,7 @@ public class Parser
                 Accept(TokenKind.StringLiteral);
                 break;
             default:
-                throw new Exception($"Expected literal, but found {_currentToken.Kind}");
+                throw new ParserException($"Expected literal, but found {_currentToken.Kind}");
         }
     }
 
@@ -359,7 +359,7 @@ public class Parser
                 Accept(TokenKind.Char);
                 break;
             default:
-                throw new Exception($"Expected type, but found {_currentToken.Kind}");
+                throw new ParserException($"Expected type, but found {_currentToken.Kind}");
         }
     }
 

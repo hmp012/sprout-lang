@@ -33,7 +33,7 @@ public class ParserTests
             var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var parser = new Parser(scanner);
-            Assert.Throws<Exception>(() => parser.ParseProgram());
+            Assert.Throws<ParserException>(() => parser.ParseProgram());
         }
         finally
         {

@@ -39,12 +39,18 @@ public class Checker : IAstVisitor
 
     public object? VisitArgList(ArgList argList, object arg)
     {
-        throw new NotImplementedException();
+        foreach (var expr in argList.Arguments)
+        {
+            expr.Visit(this, arg);
+        }
+
+        return null;
     }
 
-    public object VisitStatement(Statement statement, object arg)
+    public object? VisitStatement(Statement statement, object arg)
     {
-        throw new NotImplementedException();
+        statement.Visit(this, arg);
+        return null;
     }
 
     public object VisitIfStatement(IfStatement ifStatement, object arg)
@@ -58,7 +64,9 @@ public class Checker : IAstVisitor
 
         if (ifStatement.ElseBlock != null)
         {
+            _identificationTable.OpenScope();
             ifStatement.ElseBlock.Visit(this, arg);
+            _identificationTable.CloseScope();
         }
         
         return null;
@@ -67,23 +75,56 @@ public class Checker : IAstVisitor
     public object VisitIfBranch(IfBranch ifBranch, object arg)
     {
         ifBranch.Condition.Visit(this, arg);
+        _identificationTable.OpenScope();
         ifBranch.Block.Visit(this, arg);
+        _identificationTable.CloseScope();
         return null;
     }
 
-    public object VisitRepeatTimes(RepeatTimes repeatTimes, object arg)
+    public object? VisitRepeatTimes(RepeatTimes repeatTimes, object arg)
     {
-        throw new NotImplementedException();
+        repeatTimes.Times.Visit(this, arg);
+        repeatTimes.Body.Visit(this, arg);
+        return null;
     }
 
-    public object VisitRepeatUntil(RepeatUntil repeatUntil, object arg)
+    public object? VisitRepeatUntil(RepeatUntil repeatUntil, object arg)
     {
-        throw new NotImplementedException();
+        repeatUntil.Body.Visit(this, arg);
+        repeatUntil.Condition.Visit(this, arg);
+
+        return null;
     }
 
-    public object VisitVarAssignment(VarAssignment varAssignment, object arg)
+    public object? VisitVarAssignment(VarAssignment varAssignment, object arg)
     {
-        throw new NotImplementedException();
+        var id = varAssignment.Name.Visit(this, arg).ToString();
+        if (id != null)
+        {
+            var varDecl = _identificationTable.Retrieve(id);
+            if (varDecl is VarDecl vd)
+            {
+                var declaredType = (vd.Type as SimpleType)?.Kind;
+                var exprResult = (TypeResult)varAssignment.Expr.Visit(this, arg);
+
+                if (declaredType != null && exprResult.Type != null)
+                {
+                    if (declaredType != exprResult.Type)
+                    {
+                        _logger.LogError("Type mismatch in assignment to '{Id}'. Expected {Expected}, got {Actual}.",
+                            id, declaredType, exprResult.Type);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogError("Variable '{Id}' not declared.", id);
+            }
+        }
+
+        varAssignment.Expr.Visit(this, arg);
+        
+        return null;
     }
 
     public object? VisitArrayAssignment(ArrayAssignment arrayAssignment, object arg)
@@ -122,14 +163,18 @@ public class Checker : IAstVisitor
         return @operator.Spelling;
     }
 
-    public object VisitParam(Param param, object arg)
+    public object? VisitParam(Param param, object arg)
     {
-        throw new NotImplementedException();
+        param.Name.Visit(this, arg);
+        param.Type?.Visit(this, arg);
+        
+        _identificationTable.Enter(param.Name.Spelling, param);
+        return null;
     }
 
     public object VisitSimpleType(SimpleType simpleType, object arg)
     {
-        throw new NotImplementedException();
+        return simpleType;
     }
 
     public object? VisitVomitStatement(VomitStatement vomitStatement, object arg)
@@ -138,9 +183,10 @@ public class Checker : IAstVisitor
         return null;
     }
 
-    public object VisitListenStatement(ListenStatement listenStatement, object arg)
+    public object? VisitListenStatement(ListenStatement listenStatement, object arg)
     {
-        throw new NotImplementedException();
+        listenStatement.Identifier.Visit(this, arg);
+        return null;
     }
 
     public object? VisitSubRoutineDecl(SubRoutineDeclar subRoutineDeclar, object arg)
@@ -176,6 +222,8 @@ public class Checker : IAstVisitor
     public object? VisitVarDecl(VarDecl varDecl, object arg)
     {
         var id = varDecl.Name.Visit(this, arg).ToString();
+
+        varDecl.Type.Visit(this, arg);
         
         _identificationTable.Enter(id, varDecl);
         
@@ -191,52 +239,76 @@ public class Checker : IAstVisitor
 
     public object VisitBinaryExpr(BinaryExpr binaryExpr, object arg)
     {
-        var op1 = (TypeResult)binaryExpr.left.Visit(this, arg);
-        binaryExpr.right.Visit(this, arg);
-        var exOp = binaryExpr.op.Visit(this, arg);
+        var leftResult = (TypeResult)binaryExpr.left.Visit(this, arg);
+        var rightResult = (TypeResult)binaryExpr.right.Visit(this, arg);
+        var exOp = binaryExpr.op.Visit(this, arg).ToString();
         
-        if (exOp.Equals("=") && !op1.IsLValue)
+        
+        if (exOp.Equals("="))
         {
-            _logger.LogError("Left operand of assignment must be an l-value.");
+            if (!leftResult.IsLValue)
+            {
+                _logger.LogError("Left operand of assignment must be an l-value.");
+            }
+
+            if (leftResult.Type != null && rightResult.Type != null)
+            {
+                if (leftResult.Type != rightResult.Type)
+                {
+                    _logger.LogError("Type mismatch in assignment. Cannot assign {Right} to {Left}.",
+                        rightResult.Type, leftResult.Type);
+                }
+            }
+
+            return new TypeResult(leftResult.Type, false);
         }
         
-        return new TypeResult(false);
+        if (leftResult.Type != null && rightResult.Type != null)
+        {
+            if (leftResult.Type != rightResult.Type)
+            {
+                _logger.LogError("Type mismatch in binary operation '{Op}'. Left: {Left}, Right: {Right}.",
+                    exOp, leftResult.Type, rightResult.Type);
+            }
+        }
+
+        return new TypeResult(leftResult.Type, false);
     }
 
     public object VisitUnaryExpr(UnaryExpr unaryExpr, object arg)
     {
-        unaryExpr.Operand.Visit(this, arg);
+        var operandResult = (TypeResult)unaryExpr.Operand.Visit(this, arg);
         var op = unaryExpr.Operator.Visit(this, arg).ToString();
         var allowedUnaryOperators = new HashSet<string?> { "-", "+" };
 
         // The result of a unary operation (e.g., -x) is a calculated value.
         // It is not a variable location you can assign to, so it's an "r-value".
 
-        if (allowedUnaryOperators.Contains(op))
+        if (!allowedUnaryOperators.Contains(op))
         {
             _logger.LogError($"Unary operand of unary operator must be allowed.Only allowed {allowedUnaryOperators}");
         }
         
-        return new TypeResult(isLValue: false);
+        return new TypeResult(operandResult.Type, isLValue: false);
         
     }
 
     public object VisitIntLiteralExpression(IntLiteralExpression intLiteralExpression, object arg)
     {
         intLiteralExpression.Literal.Visit(this, arg);
-        return new TypeResult( false);
+        return new TypeResult( BaseType.Int, false);
     }
 
     public object VisitBoolLiteralExpression(BoolLiteralExpression boolLiteralExpression, object arg)
     {
         boolLiteralExpression.Literal.Visit(this, arg);
-        return new TypeResult( false);
+        return new TypeResult(BaseType.Bool, false);
     }
 
     public object VisitCharLiteralExpression(CharLiteralExpression charLiteralExpression, object arg)
     {
         charLiteralExpression.Literal.Visit(this, arg);
-        return new TypeResult( false);
+        return new TypeResult(BaseType.Char, false);
     }
 
     public object VisitVarExpression(VarExpression varExpression, object arg)
@@ -244,8 +316,15 @@ public class Checker : IAstVisitor
         var id = varExpression.Name.Visit(this, arg).ToString();
         
         var decl = _identificationTable.Retrieve(id);
+
+        if (decl is VarDecl varDecl)
+        {
+            var type = (varDecl.Type as SimpleType)?.Kind;
+            return new TypeResult(type, true);
+        }     
         
-        return new TypeResult( true);
+        _logger.LogError("Variable '{Id}' not declared.", id);
+        return new TypeResult(null, false);
     }
 
     public object VisitCallExpr(CallExpr callExpr, object arg)
@@ -270,6 +349,6 @@ public class Checker : IAstVisitor
             }
         }
 
-        return new TypeResult(false);
+        return new TypeResult(null, false);
     }
 }
