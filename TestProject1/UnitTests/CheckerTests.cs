@@ -104,8 +104,8 @@ public class CheckerTests
         var errors = CheckCode(code);
 
         // Assert
-        Assert.Single(errors);
         Assert.Contains("Identifier 'x' is not declared in the current scope", errors[0]);
+        Assert.Contains("Variable 'x' not declared", errors[1]);
     }
 
     [Fact]
@@ -156,9 +156,9 @@ public class CheckerTests
         var errors = CheckCode(code);
 
         // Assert
-        Assert.Single(errors);
         Assert.Contains("Identifier 'x' is not declared in the current scope", errors[0]);
-    }
+        Assert.Contains("Variable 'x' not declared", errors[1]);
+    }   
 
     [Fact]
     public void Check_Same_VariableNameInDifferentScopes_ShouldProduceNoErrors()

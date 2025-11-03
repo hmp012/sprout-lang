@@ -323,6 +323,12 @@ public class Checker : IAstVisitor
             return new TypeResult(type, true);
         }     
         
+        if (decl is Param param)
+        {
+            var type = (param.Type as SimpleType)?.Kind;
+            return new TypeResult(type, true);
+        }
+        
         _logger.LogError("Variable '{Id}' not declared.", id);
         return new TypeResult(null, false);
     }
