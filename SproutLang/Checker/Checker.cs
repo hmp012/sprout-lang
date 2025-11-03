@@ -252,7 +252,6 @@ public class Checker : IAstVisitor
         var rightResult = binaryExpr.right.Visit(this, arg) as TypeResult;
         var exOp = binaryExpr.op.Visit(this, arg)?.ToString();
         
-        
         if (exOp != null && exOp.Equals("="))
         {
             if (leftResult != null && !leftResult.IsLValue)
@@ -260,33 +259,32 @@ public class Checker : IAstVisitor
                 _logger.LogError("Left operand of assignment must be an l-value.");
             }
 
-            if (leftResult?.Type != null && rightResult?.Type != null)
-            {
-                if (leftResult.Type != rightResult.Type)
-                {
-                    _logger.LogError("Type mismatch in assignment. Cannot assign {Right} to {Left}.",
-                        rightResult.Type, leftResult.Type);
-                }
-            }
-
+            CheckTypeMismatch(leftResult, rightResult, "assignment");
             return new TypeResult(leftResult?.Type, false);
+
         }
         
         var comparisonOperators = new HashSet<string?> { "==", "!=", "<", ">" };
 
+        CheckTypeMismatch(leftResult, rightResult, $"binary operation '{exOp}'");
+    
+        var resultType = comparisonOperators.Contains(exOp) ? BaseType.Bool : leftResult?.Type;
+        return new TypeResult(resultType, false);
+
+    }
+
+    private void CheckTypeMismatch(TypeResult? leftResult, TypeResult? rightResult, string? operation)
+    {
         if (leftResult?.Type != null && rightResult?.Type != null)
         {
             if (leftResult.Type != rightResult.Type)
             {
-                _logger.LogError("Type mismatch in binary operation '{Op}'. Left: {Left}, Right: {Right}.",
-                    exOp, leftResult.Type, rightResult.Type);
+                _logger.LogError("Type mismatch in {Operation}. Left: {Left}, Right: {Right}.",
+                    operation, leftResult.Type, rightResult.Type);
             }
         }
-
-        var resultType = comparisonOperators.Contains(exOp) ? BaseType.Bool : leftResult?.Type;
-        
-        return new TypeResult(resultType, false);
     }
+
 
     public object VisitUnaryExpr(UnaryExpr unaryExpr, object? arg)
     {
