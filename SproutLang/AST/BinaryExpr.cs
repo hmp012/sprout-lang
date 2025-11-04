@@ -11,7 +11,7 @@ public class BinaryExpr: Expression
         this.op = op;
         this.right = right;
     }
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitBinaryExpr(this, arg);
     }

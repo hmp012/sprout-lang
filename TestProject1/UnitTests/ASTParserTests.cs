@@ -80,7 +80,7 @@ public class ASTParserTests
             var program = AssertParses(code);
 
             var loop = Assert.IsType<RepeatTimes>(program.Block.Statements[0]);
-            Assert.Equal(3, loop.Times);
+            Assert.Equal(3, loop.Times.Literal.Value);
             Assert.Single(loop.Body.Statements);
         }
 
@@ -134,7 +134,7 @@ public class ASTParserTests
             var program = AssertParses(code);
 
             var call = Assert.IsType<CallStatement>(program.Block.Statements[0]);
-            Assert.Equal("print", call.Call.Callee);
+            Assert.Equal("print", call.Call.Callee.Spelling);
             Assert.Equal(2, call.Call.Arguments.Arguments.Count);
         }
         
@@ -159,4 +159,70 @@ public class ASTParserTests
             Assert.Contains("SimpleType Int", output);
         }
         
+        [Fact]
+        public void BinaryExpr_ShouldHaveCorrectStructure()
+        {
+            string code = "create bool result; result = 5==7;";
+            
+            var program = AssertParses(code);
+            
+            Assert.IsType<VarAssignment>(program.Block.Statements[1]);
+        }
+        
+        [Fact]
+        public void BinaryExpressionWithIncorrectLType_ShouldThrow()
+        {
+            string code = @"
+                create int a;
+                create bool b;
+                5 = a;
+            ";
+            
+            var exception = Assert.Throws<ParserException>(() => AssertParses(code));
+            Assert.Contains("Expected Identifier, but found IntLiteral", exception.Message);
+        }
+            
+        [Fact]
+        public void Declare_And_Assign_Char_Variable()
+        {
+            string code = @"
+                create char letter;
+                letter = 'A';
+            ";
+            
+            var program = AssertParses(code);
+            
+            var decl = Assert.IsType<VarDecl>(program.Block.Statements[0]);
+            Assert.Equal("letter", decl.Name.Spelling);
+            Assert.IsType<SimpleType>(decl.Type);
+            Assert.Equal(BaseType.Char, ((SimpleType)decl.Type).Kind);
+            
+            var assignment = Assert.IsType<VarAssignment>(program.Block.Statements[1]);
+            Assert.Equal("letter", assignment.Name.Spelling);
+            
+            var charLiteralExpr = Assert.IsType<CharLiteralExpression>(assignment.Expr);
+            Assert.Equal('A', charLiteralExpr.Literal.Value);
+        }
+        
+        [Fact]
+        public void Declare_And_Assign_Bool_Variable()
+        {
+            string code = @"
+                create bool isActive;
+                isActive = true;
+            ";
+            
+            var program = AssertParses(code);
+            
+            var decl = Assert.IsType<VarDecl>(program.Block.Statements[0]);
+            Assert.Equal("isActive", decl.Name.Spelling);
+            Assert.IsType<SimpleType>(decl.Type);
+            Assert.Equal(BaseType.Bool, ((SimpleType)decl.Type).Kind);
+            
+            var assignment = Assert.IsType<VarAssignment>(program.Block.Statements[1]);
+            Assert.Equal("isActive", assignment.Name.Spelling);
+            
+            var boolLiteralExpr = Assert.IsType<BoolLiteralExpression>(assignment.Expr);
+            Assert.True(boolLiteralExpr.Literal.Value);
+        }
 }

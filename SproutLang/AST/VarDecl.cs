@@ -11,7 +11,7 @@ public sealed class VarDecl :  Declaration
         Name = identifier;
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitVarDecl(this, arg);
     }

@@ -5,9 +5,9 @@ namespace SproutLang.Checker;
 
 public class IdentificationTable
 {
-    private readonly ILogger<IdentificationTable> _logger;
+    private readonly ILogger _logger;
 
-    public IdentificationTable(ILogger<IdentificationTable> logger)
+    public IdentificationTable(ILogger logger)
     {
         _logger = logger;
     }

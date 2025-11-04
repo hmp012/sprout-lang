@@ -6,7 +6,7 @@ public class Operator: Terminal
     {
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitOperator(this, arg);
     }

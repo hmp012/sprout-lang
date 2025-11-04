@@ -564,3 +564,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+copilotDiffState.xml

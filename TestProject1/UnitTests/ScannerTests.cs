@@ -127,4 +127,26 @@ public class ScannerTests
         Assert.Equal(TokenKind.Error, tokens[0].Kind);
         Assert.Equal(TokenKind.EOT, tokens[1].Kind);
     }
+    
+    [Fact]
+    public void ScansBoolLiterals()
+    {
+        var tokens = ScanAll("true false");
+        Assert.Equal(TokenKind.BoolLiteral, tokens[0].Kind);
+        Assert.Equal(TokenKind.BoolLiteral, tokens[1].Kind);
+        Assert.Equal(TokenKind.EOT, tokens[2].Kind);
+    }
+
+    [Fact]
+    public void ScansCharLiterals()
+    {
+        var tokens = ScanAll("'A' 'z' '1'");
+        Assert.Equal(TokenKind.CharLiteral, tokens[0].Kind);
+        Assert.Equal("A", tokens[0].Spelling);
+        Assert.Equal(TokenKind.CharLiteral, tokens[1].Kind);
+        Assert.Equal("z", tokens[1].Spelling);
+        Assert.Equal(TokenKind.CharLiteral, tokens[2].Kind);
+        Assert.Equal("1", tokens[2].Spelling);
+        Assert.Equal(TokenKind.EOT, tokens[3].Kind);
+    }
 }

@@ -22,7 +22,7 @@ public class ASTParser
         }
         else
         {
-            throw new Exception($"Expected {expectedKind}, but found {_currentToken.Kind}");
+            throw new ParserException($"Expected {expectedKind}, but found {_currentToken.Kind}");
         }
     }
 
@@ -43,14 +43,14 @@ public class ASTParser
         return _currentToken.Kind switch
         {
             TokenKind.Create => ParseDeclaration(),
-            TokenKind.Identifier => ParseAssignmentOrCall(),
             TokenKind.Si => ParseIfStatement(),
             TokenKind.Repeat => ParseLoopStatement(),
             TokenKind.Vomit => ParseVomitStatement(),
             TokenKind.ListenCarefully => ParseListenStatement(),
             TokenKind.Sprout => ParseSubroutineDecl(),
             TokenKind.Bloom => ParseCallStatement(),
-            _ => throw new Exception($"Unexpected token: {_currentToken.Kind}")
+            _ when IsStarterOfExpression(_currentToken.Kind) => ParseAssignmentOrCall(),
+            _ => throw new ParserException($"Unexpected token: {_currentToken.Kind}")
         };
     }
 
@@ -97,11 +97,11 @@ public class ASTParser
             var args = ParseArguments();
             Accept(TokenKind.RParenthesis);
             Accept(TokenKind.Semicolon);
-            return new CallStatement(new CallExpr(id.Spelling, args));
+            return new CallStatement(new CallExpr(new Identifier(id.Spelling), args));
         }
         else
         {
-            throw new Exception("Invalid assignment or call.");
+            throw new ParserException("Invalid assignment or call.");
         }
     }
 
@@ -147,7 +147,7 @@ public class ASTParser
             Accept(TokenKind.IntLiteral);
             Accept(TokenKind.Times);
             Block block = ParseBlock();
-            return new RepeatTimes(int.Parse(value), block);
+            return new RepeatTimes(new IntLiteralExpression(new IntLiteral(int.Parse(value))), block);
         }
         else
         {
@@ -200,7 +200,7 @@ public class ASTParser
 
     private Param ParseParam()
     {
-        TypeSpec type = ParseType();
+        SimpleType type = ParseType();
         Identifier id = ParseIdentifier();
         return new Param(type, id);
     }
@@ -213,7 +213,7 @@ public class ASTParser
         var args = ParseArguments();
         Accept(TokenKind.RParenthesis);
         Accept(TokenKind.Semicolon);
-        return new CallStatement(new CallExpr(id.Spelling, args));
+        return new CallStatement(new CallExpr(new Identifier(id.Spelling), args));
     }
 
     private ArgList ParseArguments()
@@ -245,9 +245,22 @@ public class ASTParser
 
     private Expression ParseExpression()
     {
-        return ParseLogicalOrExpression();
+        return ParseAssignmentExpression();
     }
 
+    private Expression ParseAssignmentExpression()
+    {
+        Expression left = ParseLogicalOrExpression();
+        
+        while (_currentToken.Kind == TokenKind.Assign)
+        {
+            Accept(TokenKind.Assign);
+            Expression right = ParseLogicalOrExpression();
+            left = new BinaryExpr(left, new Operator("="), right);
+        }
+
+        return left;
+    }
 
     private Expression ParseLogicalOrExpression()
     {
@@ -379,9 +392,15 @@ public class ASTParser
         {
             return ParseGroupedExpression();
         }
+        else if (_currentToken.Kind == TokenKind.BoolLiteral)
+        {
+            string value = _currentToken.Spelling;
+            Accept(TokenKind.BoolLiteral);
+            return new BoolLiteralExpression(new BoolLiteral(bool.Parse(value)));
+        }
         else
         {
-            throw new Exception($"Unexpected token in primary expression: {_currentToken.Kind}");
+            throw new ParserException($"Unexpected token in primary expression: {_currentToken.Kind}");
         }
     }
 
@@ -395,7 +414,7 @@ public class ASTParser
             Accept(TokenKind.LParenthesis);
             var args = ParseArguments();
             Accept(TokenKind.RParenthesis);
-            return new CallExpr(id.Spelling, args);
+            return new CallExpr(new Identifier(id.Spelling), args);
         }
 
         return new VarExpression(new Identifier(id.Spelling));
@@ -409,7 +428,7 @@ public class ASTParser
         Accept(TokenKind.RParenthesis);
         return expr;
     }
-    private TypeSpec ParseType()
+    private SimpleType ParseType()
     {
         switch (_currentToken.Kind)
         {
@@ -423,7 +442,7 @@ public class ASTParser
                 Accept(TokenKind.Char);
                 return new SimpleType(BaseType.Char);
             default:
-                throw new Exception($"Unexpected type: {_currentToken.Kind}");
+                throw new ParserException($"Unexpected type: {_currentToken.Kind}");
         }
     }
 
@@ -436,11 +455,11 @@ public class ASTParser
 
     private bool IsStarterOfStatement(TokenKind kind)
     {
-        return kind is TokenKind.Create or TokenKind.Identifier or TokenKind.Si or TokenKind.Repeat or TokenKind.Vomit or TokenKind.ListenCarefully or TokenKind.Bloom or TokenKind.Sprout or TokenKind.LBrace;
+        return kind is TokenKind.Create or TokenKind.Identifier or TokenKind.Si or TokenKind.Repeat or TokenKind.Vomit or TokenKind.ListenCarefully or TokenKind.Bloom or TokenKind.Sprout or TokenKind.LBrace or TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral;
     }
 
     private bool IsStarterOfExpression(TokenKind kind)
     {
-        return kind is TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral or TokenKind.Identifier or TokenKind.LParenthesis or TokenKind.Not or TokenKind.Minus;
+        return kind is TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral or TokenKind.Identifier or TokenKind.LParenthesis or TokenKind.Not or TokenKind.Minus or TokenKind.BoolLiteral;
     }
 }

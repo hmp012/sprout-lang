@@ -8,7 +8,7 @@ public class CallStatement: Statement
     {
         Call = call;
     }
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitCallStatement(this, arg);
     }

@@ -10,7 +10,7 @@ public class CharLiteralExpression: Expression
     } 
     
     
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitCharLiteralExpression(this, arg);
     }

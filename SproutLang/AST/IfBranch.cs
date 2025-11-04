@@ -10,7 +10,7 @@ public sealed class IfBranch: Statement
         Block = block;
     }
 
-    public override object Visit(IAstVisitor v, object arg)
+    public override object? Visit(IAstVisitor v, object? arg)
     {
         return v.VisitIfBranch(this, arg);
     }
