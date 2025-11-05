@@ -2,7 +2,7 @@ namespace SproutLang.AST;
 
 public class Param :Declaration
 {
-    public SimpleType Type { get; }
+    public TypeSpec Type { get; }
     public Identifier Name { get; }
     public Param(SimpleType type, Identifier name)
     {

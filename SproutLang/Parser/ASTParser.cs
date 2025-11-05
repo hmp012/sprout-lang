@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using SproutLang.Scanner;
 using SproutLang.AST;
 
@@ -223,7 +222,7 @@ public class ASTParser
 
     private Param ParseParam()
     {
-        SimpleType type = ParseType();
+        SimpleType type = ParseType() as SimpleType ?? throw new Exception("Expected simple type for parameter");
         Identifier id = ParseIdentifier();
         return new Param(type, id);
     }

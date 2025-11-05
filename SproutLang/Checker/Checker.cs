@@ -342,7 +342,7 @@ public class Checker : IAstVisitor
         
         if (decl is Param param)
         {
-            var type = param.Type.Kind;
+            var type = (param.Type as SimpleType)?.Kind;
             return new TypeResult(type, true);
         }
         
