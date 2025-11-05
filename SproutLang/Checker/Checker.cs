@@ -180,6 +180,11 @@ public class Checker : IAstVisitor
         return simpleType;
     }
 
+    public object VisitArrayType(ArrayType arrayType, object arg)
+    {
+        return arrayType;
+    }
+
     public object? VisitVomitStatement(VomitStatement vomitStatement, object? arg)
     {
         vomitStatement.Expression.Visit(this, arg);
@@ -372,6 +377,42 @@ public class Checker : IAstVisitor
             }
         }
 
+        return new TypeResult(null, false);
+    }
+
+    public object VisitArrayExpression(ArrayExpression arrayExpression, object arg)
+    {
+        var id = arrayExpression.Name.Visit(this, arg)?.ToString();
+
+        if (id == null)
+        {
+            _logger.LogError("Array name is null.");
+            return new TypeResult(null, false);
+        }
+
+        var decl = _identificationTable.Retrieve(id);
+
+        if (decl is VarDecl varDecl)
+        {
+            if (varDecl.Type is ArrayType arrayType)
+            {
+                var indexResult = arrayExpression.Index.Visit(this, arg) as TypeResult;
+
+                if (indexResult?.Type != null && indexResult.Type != BaseType.Int)
+                {
+                    _logger.LogError("Array index must be of type Int. Got {Type}.", indexResult.Type);
+                }
+
+                return new TypeResult(arrayType.ElementType, true);
+            }
+            else
+            {
+                _logger.LogError("Variable '{Id}' is not an array.", id);
+                return new TypeResult(null, false);
+            }
+        }
+
+        _logger.LogError("Array '{Id}' not declared.", id);
         return new TypeResult(null, false);
     }
 }
