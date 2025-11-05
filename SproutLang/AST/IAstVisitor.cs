@@ -22,6 +22,7 @@ public interface IAstVisitor
     object VisitOperator(Operator @operator, object? arg);
     object? VisitParam(Param param, object? arg);
     object VisitSimpleType(SimpleType simpleType, object? arg);
+    object VisitArrayType(ArrayType n, object arg);
     object? VisitVomitStatement(VomitStatement vomitStatement, object? arg);
     object? VisitListenStatement(ListenStatement listenStatement, object? arg);
     
@@ -39,6 +40,7 @@ public interface IAstVisitor
     object VisitIntLiteralExpression(IntLiteralExpression n, object arg);
     object VisitBoolLiteralExpression(BoolLiteralExpression n, object arg);
     object VisitCharLiteralExpression(CharLiteralExpression n, object arg);
+    object VisitArrayExpression(ArrayExpression n, object arg);
     object VisitVarExpression(VarExpression n, object arg);
     object VisitCallExpr(CallExpr n, object arg);
     object? VisitArrayType(ArrayType arrayType, object arg);

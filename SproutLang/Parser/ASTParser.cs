@@ -452,6 +452,14 @@ public class ASTParser
             Accept(TokenKind.RBracket);
             return new ArrayExpression(id, index);
         }
+        else if (_currentToken.Kind == TokenKind.LBracket)
+        {
+            // Array indexing expression
+            Accept(TokenKind.LBracket);
+            Expression index = ParseExpression();
+            Accept(TokenKind.RBracket);
+            return new ArrayExpression(id, index);
+        }
 
         return new VarExpression(new Identifier(id.Spelling));
     }
@@ -464,7 +472,7 @@ public class ASTParser
         Accept(TokenKind.RParenthesis);
         return expr;
     }
-    private SimpleType ParseType()
+    private TypeSpec ParseType()
     {
         switch (_currentToken.Kind)
         {
@@ -491,11 +499,13 @@ public class ASTParser
 
     private bool IsStarterOfStatement(TokenKind kind)
     {
-        return kind is TokenKind.Create or TokenKind.Identifier or TokenKind.Si or TokenKind.Repeat or TokenKind.Vomit or TokenKind.ListenCarefully or TokenKind.Bloom or TokenKind.Sprout or TokenKind.LBrace or TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral;
+        return kind is TokenKind.Create or TokenKind.Identifier or TokenKind.Si or TokenKind.Repeat or TokenKind.Vomit
+            or TokenKind.ListenCarefully or TokenKind.Bloom or TokenKind.Sprout or TokenKind.LBrace;
     }
 
     private bool IsStarterOfExpression(TokenKind kind)
     {
-        return kind is TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral or TokenKind.Identifier or TokenKind.LParenthesis or TokenKind.Not or TokenKind.Minus or TokenKind.BoolLiteral;
+        return kind is TokenKind.IntLiteral or TokenKind.CharLiteral or TokenKind.StringLiteral or TokenKind.Identifier
+            or TokenKind.LParenthesis or TokenKind.Not or TokenKind.Minus;
     }
 }
