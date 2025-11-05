@@ -41,4 +41,6 @@ public interface IAstVisitor
     object VisitCharLiteralExpression(CharLiteralExpression n, object arg);
     object VisitVarExpression(VarExpression n, object arg);
     object VisitCallExpr(CallExpr n, object arg);
+    object? VisitArrayType(ArrayType arrayType, object arg);
+    object? VisitArrayExpression(ArrayExpression arrayExpression, object arg);
 }
