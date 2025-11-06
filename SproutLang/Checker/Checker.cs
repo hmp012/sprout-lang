@@ -180,7 +180,7 @@ public class Checker : IAstVisitor
         return simpleType;
     }
 
-    public object VisitArrayType(ArrayType arrayType, object arg)
+    public object? VisitArrayType(ArrayType arrayType, object? arg)
     {
         return arrayType;
     }
@@ -380,7 +380,7 @@ public class Checker : IAstVisitor
         return new TypeResult(null, false);
     }
 
-    public object VisitArrayExpression(ArrayExpression arrayExpression, object arg)
+    public object VisitArrayExpression(ArrayExpression arrayExpression, object? arg)
     {
         var id = arrayExpression.Name.Visit(this, arg)?.ToString();
 

@@ -440,11 +440,11 @@ public class ASTParser
             Accept(TokenKind.RParenthesis);
             return new CallExpr(new Identifier(id.Spelling), args);
         }
-        
-        else if (_currentToken.Kind == TokenKind.LBracket)
+
+        if (_currentToken.Kind == TokenKind.LBracket)
         {
             Accept(TokenKind.LBracket);
-            Expression index = ParseExpression();
+            var index = ParseExpression() as IntLiteralExpression ?? throw new ParserException($"Unexpected token in primary expression: {_currentToken.Kind}");
             Accept(TokenKind.RBracket);
             return new ArrayExpression(id, index);
         }
