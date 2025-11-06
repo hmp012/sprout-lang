@@ -379,21 +379,56 @@ public class CheckerTests
     }
     
 
-//TODO: this should pass in the future once arrays are figured out 
-    /*[Fact]
-    public void Check_ArrayDeclarationAndUsage_ShouldProduceNoErrors()
-    {
-        // Arrange
-        var code = @"
-            create [int, 10] arr;
-            arr[0] = 5;
-            vomit arr[0];
-        ";
+     [Fact]
+     public void Check_ArrayDeclarationAndUsage_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             create [int, 10] arr;
+             arr[0] = 5;
+             vomit arr[0];
+         ";
 
-        // Act
-        var errors = CheckCode(code);
+         // Act
+         var errors = CheckCode(code);
 
-        // Assert
-        Assert.Empty(errors);
-    }*/
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_ArrayDeclarationAndUsage_ShouldProduceErrors()
+     {
+         // Arrange
+         var code = @"
+             create [int, 10] arr;
+             arr[0] = 'A';
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Single(errors);
+     }
+     
+     [Fact]
+     public void Check_ArrayAssignmentSizes_ShouldProduceErrors()
+     {
+         // Arrange
+         var code = @"
+             create [int, 10] arr;
+             arr[11] = 5;
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Single(errors);
+     }
+     
+     
+     
+     
 }
