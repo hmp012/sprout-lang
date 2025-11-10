@@ -428,7 +428,4 @@ public class CheckerTests
          Assert.Single(errors);
      }
      
-     
-     
-     
 }
