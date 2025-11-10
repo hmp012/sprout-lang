@@ -241,4 +241,38 @@ public class ASTParserTests
             var valueLiteral = Assert.IsType<IntLiteralExpression>(stmt.Expr);
             Assert.Equal(10, valueLiteral.Literal.Value);
         }
+        
+        [Fact]
+        public void Parse_ArrayExpression_AsRhsOfAssignment_ShouldBuildArrayExpression()
+        {
+            string code = @"
+                          create int x;
+                          x = arr[2];
+                          ";
+            var program = AssertParses(code);
+
+            var assign = Assert.IsType<VarAssignment>(program.Block.Statements[1]);
+            var arrExpr = Assert.IsType<ArrayExpression>(assign.Expr);
+
+            Assert.Equal("arr", arrExpr.Name.Spelling);
+            Assert.Equal(2, arrExpr.Index.Literal.Value);
+        }
+        
+
+        [Fact]
+        public void Parse_ArrayExpression_WithNonIntIndex_ShouldThrow()
+        {
+            // Adjust the expected message if your parser emits a different one.
+            string code = "vomit arr[true];";
+            var ex = Assert.Throws<ParserException>(() => AssertParses(code));
+            Assert.Contains("Expected IntLiteral", ex.Message);
+        }
+
+        [Fact]
+        public void Parse_ArrayExpression_MissingClosingBracket_ShouldThrow()
+        {
+            string code = "vomit arr[3;";
+            var ex = Assert.Throws<ParserException>(() => AssertParses(code));
+            Assert.Contains("Expected RightBracket", ex.Message);
+        }
 }
