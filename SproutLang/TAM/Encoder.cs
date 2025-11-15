@@ -352,6 +352,11 @@ public class Encoder : IAstVisitor
         return null!;
     }
 
+    public object? VisitArrayType(ArrayType n, object? arg)
+    {
+        throw new NotImplementedException();
+    }
+
     public object? VisitVomitStatement(VomitStatement vomitStatement, object? arg)
     {
         // Evaluate expression to output
@@ -644,5 +649,10 @@ public class Encoder : IAstVisitor
             Emit(Machine.POPop, 0, 0, 1);
 
         return null!;
+    }
+
+    public object VisitArrayExpression(ArrayExpression n, object? arg)
+    {
+        throw new NotImplementedException();
     }
 }
