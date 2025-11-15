@@ -5,29 +5,29 @@ namespace SproutLang.Checker;
 
 public class Checker : IAstVisitor
 {
-
     private IdentificationTable _identificationTable;
     private readonly ILogger _logger;
-    
+
     public Checker(ILogger logger)
     {
         _identificationTable = new IdentificationTable(logger);
         _logger = logger;
     }
+
     public void Check(AST.Program program)
     {
         program.Visit(this, null!);
     }
+
     public object VisitProgram(AST.Program program, object? arg)
     {
         _identificationTable.OpenScope();
-        
+
         program.Block.Visit(this, null!);
-        
+
         _identificationTable.CloseScope();
-        
+
         return null!;
-        
     }
 
     public object? VisitBlock(Block block, object? arg)
@@ -39,7 +39,7 @@ public class Checker : IAstVisitor
     public object VisitArgList(ArgList argList, object? arg)
     {
         var types = new List<BaseType?>();
-        
+
         foreach (var expr in argList.Arguments)
         {
             var result = expr.Visit(this, arg) as TypeResult;
@@ -57,8 +57,8 @@ public class Checker : IAstVisitor
 
     public object? VisitIfStatement(IfStatement ifStatement, object? arg)
     {
-        ifStatement.First.Visit(this, arg); 
-        
+        ifStatement.First.Visit(this, arg);
+
         foreach (var elseIf in ifStatement.ElseIfBranches)
         {
             elseIf.Visit(this, arg);
@@ -70,7 +70,7 @@ public class Checker : IAstVisitor
             ifStatement.ElseBlock.Visit(this, arg);
             _identificationTable.CloseScope();
         }
-        
+
         return null;
     }
 
@@ -126,7 +126,7 @@ public class Checker : IAstVisitor
         }
 
         varAssignment.Expr.Visit(this, arg);
-        
+
         return null;
     }
 
@@ -135,10 +135,34 @@ public class Checker : IAstVisitor
         var id = arrayAssignment.Name.Visit(this, arg)?.ToString();
         if (id != null)
         {
-            // Variable is intentionally unused for now - placeholder for future implementation
-            var _ = _identificationTable.Retrieve(id);
-        }
+            if (_identificationTable.Retrieve(id) is VarDecl array)
+            {
+                if (array.Type.Visit(this, arg) is ArrayType type)
+                {
+                    var size = type.Size;
 
+                    var expressionType = arrayAssignment.Expr.Visit(this, arg) as TypeResult;
+
+                    if (expressionType != null && type.ElementType != expressionType.Type)
+                    {
+                        _logger.LogError(
+                            "Type mismatch in array assignment to '{Id}'. Expected {Expected}, got {Actual}.",
+                            id, type.ElementType, expressionType.Type);
+                    }
+
+                    if (arrayAssignment.Index.Visit(this,arg) is TypeResult)
+                    {
+                        var indexValue = arrayAssignment.Index.Literal.Value;
+                        if (indexValue < 0 || indexValue >= size)
+                        {
+                            _logger.LogError("Array index {Index} out of bounds for array '{Id}' of size {Size}.",
+                                indexValue, id, size);
+                        }
+                    }
+
+                }
+            }
+        }
         return null;
     }
 
@@ -171,7 +195,7 @@ public class Checker : IAstVisitor
     {
         param.Name.Visit(this, arg);
         param.Type.Visit(this, arg);
-        
+
         _identificationTable.Enter(param.Name.Spelling, param);
         return null;
     }
@@ -179,6 +203,11 @@ public class Checker : IAstVisitor
     public object VisitSimpleType(SimpleType simpleType, object? arg)
     {
         return simpleType;
+    }
+
+    public object? VisitArrayType(ArrayType arrayType, object? arg)
+    {
+        return arrayType;
     }
 
     public object? VisitVomitStatement(VomitStatement vomitStatement, object? arg)
@@ -196,23 +225,23 @@ public class Checker : IAstVisitor
     public object? VisitSubRoutineDecl(SubRoutineDeclar subRoutineDeclar, object? arg)
     {
         var id = subRoutineDeclar.Name.Visit(this, arg)?.ToString();
-        
+
         if (id != null)
         {
             _identificationTable.Enter(id, subRoutineDeclar);
         }
 
         _identificationTable.OpenScope();
-        
+
         foreach (var param in subRoutineDeclar.Params)
         {
             param.Visit(this, arg);
         }
-        
+
         subRoutineDeclar.Body.Visit(this, arg);
-        
+
         _identificationTable.CloseScope();
-        
+
         return null;
     }
 
@@ -231,14 +260,13 @@ public class Checker : IAstVisitor
         var id = varDecl.Name.Visit(this, arg)?.ToString();
 
         varDecl.Type.Visit(this, arg);
-        
+
         if (id != null)
         {
             _identificationTable.Enter(id, varDecl);
         }
-        
-        return null;
 
+        return null;
     }
 
     public object? VisitExpression(Expression expression, object? arg)
@@ -252,7 +280,7 @@ public class Checker : IAstVisitor
         var leftResult = binaryExpr.left.Visit(this, arg) as TypeResult;
         var rightResult = binaryExpr.right.Visit(this, arg) as TypeResult;
         var exOp = binaryExpr.op.Visit(this, arg)?.ToString();
-        
+
         if (exOp != null && exOp.Equals("="))
         {
             if (leftResult != null && !leftResult.IsLValue)
@@ -262,16 +290,14 @@ public class Checker : IAstVisitor
 
             CheckTypeMismatch(leftResult, rightResult, "assignment");
             return new TypeResult(leftResult?.Type, false);
-
         }
-        
+
         var comparisonOperators = new HashSet<string?> { "==", "!=", "<", ">" };
 
         CheckTypeMismatch(leftResult, rightResult, $"binary operation '{exOp}'");
-    
+
         var resultType = comparisonOperators.Contains(exOp) ? BaseType.Bool : leftResult?.Type;
         return new TypeResult(resultType, false);
-
     }
 
     private void CheckTypeMismatch(TypeResult? leftResult, TypeResult? rightResult, string? operation)
@@ -300,15 +326,14 @@ public class Checker : IAstVisitor
         {
             _logger.LogError($"Unary operand of unary operator must be allowed.Only allowed {allowedUnaryOperators}");
         }
-        
+
         return new TypeResult(operandResult?.Type, isLValue: false);
-        
     }
 
     public object VisitIntLiteralExpression(IntLiteralExpression intLiteralExpression, object? arg)
     {
         intLiteralExpression.Literal.Visit(this, arg);
-        return new TypeResult( BaseType.Int, false);
+        return new TypeResult(BaseType.Int, false);
     }
 
     public object VisitBoolLiteralExpression(BoolLiteralExpression boolLiteralExpression, object? arg)
@@ -326,13 +351,13 @@ public class Checker : IAstVisitor
     public object VisitVarExpression(VarExpression varExpression, object? arg)
     {
         var id = varExpression.Name.Visit(this, arg)?.ToString();
-        
+
         if (id == null)
         {
             _logger.LogError("Variable name is null.");
             return new TypeResult(null, false);
         }
-        
+
         var decl = _identificationTable.Retrieve(id);
         
         // Store the declaration reference in the AST node for the encoder to use
@@ -342,14 +367,14 @@ public class Checker : IAstVisitor
         {
             var type = (varDecl.Type as SimpleType)?.Kind;
             return new TypeResult(type, true);
-        }     
-        
+        }
+
         if (decl is Param param)
         {
             var type = param.Type.Kind;
             return new TypeResult(type, true);
         }
-        
+
         _logger.LogError("Variable '{Id}' not declared.", id);
         return new TypeResult(null, false);
     }
@@ -362,12 +387,14 @@ public class Checker : IAstVisitor
         if (id != null)
         {
             Declaration? declaration = _identificationTable.Retrieve(id);
-            
+
             if (declaration is SubRoutineDeclar subRoutineDeclar)
             {
                 if (args != null && subRoutineDeclar.Params.Count != args.Count)
                 {
-                    _logger.LogError("Function '{Id}' called with incorrect number of arguments. Expected {Expected}, got {Actual}.", id, subRoutineDeclar.Params.Count, args.Count);
+                    _logger.LogError(
+                        "Function '{Id}' called with incorrect number of arguments. Expected {Expected}, got {Actual}.",
+                        id, subRoutineDeclar.Params.Count, args.Count);
                 }
             }
             else
@@ -376,6 +403,42 @@ public class Checker : IAstVisitor
             }
         }
 
+        return new TypeResult(null, false);
+    }
+
+    public object VisitArrayExpression(ArrayExpression arrayExpression, object? arg)
+    {
+        var id = arrayExpression.Name.Visit(this, arg)?.ToString();
+
+        if (id == null)
+        {
+            _logger.LogError("Array name is null.");
+            return new TypeResult(null, false);
+        }
+
+        var decl = _identificationTable.Retrieve(id);
+
+        if (decl is VarDecl varDecl)
+        {
+            if (varDecl.Type is ArrayType arrayType)
+            {
+                var indexResult = arrayExpression.Index.Visit(this, arg) as TypeResult;
+
+                if (indexResult?.Type != null && indexResult.Type != BaseType.Int)
+                {
+                    _logger.LogError("Array index must be of type Int. Got {Type}.", indexResult.Type);
+                }
+
+                return new TypeResult(arrayType.ElementType, true);
+            }
+            else
+            {
+                _logger.LogError("Variable '{Id}' is not an array.", id);
+                return new TypeResult(null, false);
+            }
+        }
+
+        _logger.LogError("Array '{Id}' not declared.", id);
         return new TypeResult(null, false);
     }
 }
