@@ -6,6 +6,7 @@
  */
 
 using SproutLang.AST;
+using SproutLang.Checker;
 
 namespace SproutLang.TAM;
 
@@ -264,9 +265,24 @@ public class Encoder : IAstVisitor
 
     public object? VisitVarAssignment(VarAssignment varAssignment, object? arg)
     {
-        // Get the variable's address (TODO: from declaration)
-        // For now, create a dummy address
-        var adr = new Address(0, 0);
+        // Get the declaration reference that was set by the checker
+        var decl = varAssignment.Declaration;
+        Address? adr = null;
+        
+        if (decl is VarDecl varDecl)
+        {
+            adr = varDecl.Address;
+        }
+        else if (decl is Param param)
+        {
+            adr = param.Address;
+        }
+        
+        if (adr == null)
+        {
+            Console.WriteLine($"Variable {varAssignment.Name.Spelling} not found or has no address");
+            adr = new Address(0, 0);
+        }
 
         // Evaluate the expression
         varAssignment.Expr.Visit(this, true);
@@ -325,8 +341,10 @@ public class Encoder : IAstVisitor
 
     public object? VisitParam(Param param, object? arg)
     {
-        // Parameters handled in function declaration
-        return null;
+        var currentAddress = (Address)arg!;
+        param.Address = new Address(currentAddress);
+        
+        return new Address(currentAddress, 1);
     }
 
     public object VisitSimpleType(SimpleType simpleType, object? arg)
@@ -338,12 +356,40 @@ public class Encoder : IAstVisitor
     {
         // Evaluate expression to output
         vomitStatement.Expression.Visit(this, true);
+        
+        // Call appropriate output primitive based on expression type
+        // Call appropriate output primitive based on expression type
+        if (vomitStatement.Expression is IntLiteralExpression ||
+            (vomitStatement.Expression is VarExpression varExpr && 
+             varExpr.Declaration is VarDecl { Type: SimpleType type } && 
+             type.Kind.Equals(BaseType.Int)))
+        {
+            Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
+        }
+        else if (vomitStatement.Expression is CharLiteralExpression ||
+                 (vomitStatement.Expression is VarExpression varExpr2 && 
+                  varExpr2.Declaration is VarDecl { Type: SimpleType type2 } && 
+                  type2?.ToString() == "char"))
+        {
+            Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutDisplacement);
+        }
+        else if (vomitStatement.Expression is BoolLiteralExpression ||
+                 (vomitStatement.Expression is VarExpression varExpr3 && 
+                  varExpr3.Declaration is VarDecl { Type: SimpleType type3 } && 
+                  type3?.ToString() == "bool"))
+        {
+            // Print boolean as 0/1
+            Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
+        }
+        else
+        {
+            // Default to integer output for binary/unary expressions
+            Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
+        }
 
-        // Call appropriate output primitive based on type
-        // For now, assume integer output
-        Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
+        // Output newline
         Emit(Machine.CALLop, 0, Machine.PBr, Machine.PuteolDisplacement);
-
+        
         return null;
     }
 
@@ -556,9 +602,24 @@ public class Encoder : IAstVisitor
     {
         bool valueNeeded = arg is bool b ? b : true;
 
-        // TODO: Get variable address from declaration
-        // For now, return a dummy address
-        var adr = new Address(0, 0);
+        var decl = varExpression.Declaration;
+        
+        Address? adr = null;
+        
+        if (decl is VarDecl varDecl)
+        {
+            adr = varDecl.Address;
+        }
+        else if (decl is Param param)
+        {
+            adr = param.Address;
+        }
+        
+        if (adr == null)
+        {
+            Console.WriteLine($"Variable {varExpression.Name.Spelling} not found or has no address");
+            adr = new Address(0, 0);
+        }
 
         if (valueNeeded)
         {

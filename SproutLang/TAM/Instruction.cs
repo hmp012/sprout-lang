@@ -42,10 +42,18 @@ public class Instruction
 
     public void Write(BinaryWriter output)
     {
-        output.Write(Op);
-        output.Write(R);
-        output.Write(N);
-        output.Write(D);
+        WriteBigEndianInt32(output, Op);
+        WriteBigEndianInt32(output, R);
+        WriteBigEndianInt32(output, N);
+        WriteBigEndianInt32(output, D);
+    }
+
+    private static void WriteBigEndianInt32(BinaryWriter output, int value)
+    {
+        byte[] bytes = BitConverter.GetBytes(value); // platform-endian
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);                    // make it big-endian
+        output.Write(bytes);
     }
 
     public static Instruction? Read(BinaryReader input)
