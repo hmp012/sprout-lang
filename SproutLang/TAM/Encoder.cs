@@ -104,12 +104,44 @@ public class Encoder : IAstVisitor
 
     public object? VisitBlock(Block block, object? arg)
     {
-        // TODO: Handle declarations when added
-        // For now, just process statements
-        
-        block.Statements.ForEach(statement => statement.Visit(this, null));
+       int before = _nextAdr;
+       Emit(Machine.JUMPop, 0, Machine.CB, 0);
+       
+       // Ensure we have a start address and that its level reflects the current level
+       var startAddress = (arg as Address) ?? new Address();
+       startAddress.Level = _currentLevel;
 
-        return 0; // size of declarations
+       // First pass: handle declarations (they are represented as statements in out AST)
+       object addr = startAddress;
+       foreach (var stmt in block.Statements)
+       {
+           if (stmt is Declaration)
+           {
+               // Declaration visitors should return an Address when given an Address
+               addr = stmt.Visit(this, addr) ?? addr;
+           }
+       }
+
+       // Compute total size from start displacement
+       int sizeOfDeclarations = (addr as Address)!.Displacement - startAddress.Displacement;
+
+       // Patch the initial jump to here (start of executable code)
+       Patch(before, _nextAdr);
+
+       // Allocate space for local declarations if needed
+       if (sizeOfDeclarations > 0)
+           Emit(Machine.PUSHop, 0, 0, sizeOfDeclarations);
+
+       // Second pass: emit code for non-declaration statements
+       foreach (var statement in block.Statements)
+       {
+           if (statement is not Declaration)
+           {
+               statement.Visit(this, null);
+           }
+       }
+
+       return sizeOfDeclarations;
     }
 
     public object VisitArgList(ArgList argList, object? arg)
@@ -153,7 +185,6 @@ public class Encoder : IAstVisitor
             int elseIfJump = _nextAdr;
             Emit(Machine.JUMPIFop, 0, Machine.CBr, 0);
             elseIfBranch.Block.Visit(this, null);
-            int skipJump = _nextAdr;
             Emit(Machine.JUMPop, 0, Machine.CBr, 0);
             Patch(elseIfJump, _nextAdr);
         }
@@ -218,7 +249,7 @@ public class Encoder : IAstVisitor
     {
         // Start of loop
         int startAdr = _nextAdr;
-
+ 
         // Execute loop body
         repeatUntil.Body.Visit(this, null);
 
@@ -331,9 +362,44 @@ public class Encoder : IAstVisitor
 
     public object? VisitSubRoutineDecl(SubRoutineDeclar subRoutineDeclar, object? arg)
     {
-        // TODO: Implement function/subroutine code generation
-        // Similar to Java FunctionDeclaration visitor
-        return null;
+        // Get current address allocation position
+        var currentAddress = (Address)arg!;
+        
+        // Jump over the function body (will be patched later)
+        int jumpAdr = _nextAdr;
+        Emit(Machine.JUMPop, 0, Machine.CBr, 0);
+        
+        // Store the entry point address for this function
+        subRoutineDeclar.Address = new Address(currentAddress.Level, _nextAdr);
+        
+        // Enter new scope level for function body
+        _currentLevel++;
+        
+        // Create address for parameters starting at offset 0 in the new frame
+        // (after the link data which is handled by CALL/RETURN)
+        var paramAddress = new Address(_currentLevel, 0);
+        
+        // Allocate addresses for each parameter using the visitor pattern
+        foreach (var param in subRoutineDeclar.Params)
+        {
+            paramAddress = (Address)param.Visit(this, paramAddress)!;
+        }
+        
+        // Now encode the function body with local variables starting after parameters
+        int localVarSize = (int)subRoutineDeclar.Body.Visit(this, paramAddress)!;
+        
+        // Emit RETURN instruction
+        // n = number of parameters, d = link data size (3)
+        Emit(Machine.RETURNop, subRoutineDeclar.Params.Count, 0, Machine.LinkDataSize);
+        
+        // Exit scope
+        _currentLevel--;
+        
+        // Patch the jump to skip over the function
+        Patch(jumpAdr, _nextAdr);
+        
+        // Function declaration itself takes 2 words (closure: static link + code address)
+        return new Address(currentAddress, Machine.ClosureSize);
     }
 
     public object VisitCallStatement(CallStatement callStatement, object? arg)
@@ -352,9 +418,9 @@ public class Encoder : IAstVisitor
 
     public object? VisitVarDecl(VarDecl varDecl, object? arg)
     {
-        // Assign address to variable
-        // TODO: Track variable addresses
-        return null;
+        var currentAddress = (Address)arg!;
+        varDecl.Address = currentAddress;
+        return new Address(currentAddress, 1);
     }
 
     public object? VisitExpression(Expression expression, object? arg)
