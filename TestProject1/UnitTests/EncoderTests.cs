@@ -66,7 +66,7 @@ public class EncoderTests
                 return (null!, program, logger.ErrorMessages);
             }
 
-            var encoder = new Encoder();
+            var encoder = new Encoder(logger);
             encoder.Encode(program);
             
             return (encoder, program, logger.ErrorMessages);

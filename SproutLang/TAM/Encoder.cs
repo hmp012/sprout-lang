@@ -7,6 +7,7 @@
 
 using SproutLang.AST;
 using SproutLang.Checker;
+using Microsoft.Extensions.Logging;
 
 namespace SproutLang.TAM;
 
@@ -14,6 +15,12 @@ public class Encoder : IAstVisitor
 {
     private int _nextAdr = Machine.CB;
     private int _currentLevel;
+    private readonly ILogger _logger;
+
+    public Encoder(ILogger logger)
+    {
+        _logger = logger;
+    }
 
     /// <summary>
     /// Emit a TAM instruction to the code store
@@ -22,7 +29,7 @@ public class Encoder : IAstVisitor
     {
         if (n > 255)
         {
-            Console.WriteLine("Operand too long");
+            _logger.LogWarning("Operand too long: {Operand}. Truncating to 255.", n);
             n = 255;
         }
 
@@ -35,7 +42,7 @@ public class Encoder : IAstVisitor
         };
 
         if (_nextAdr >= Machine.PB)
-            Console.WriteLine("Program too large");
+            _logger.LogError("Program too large. Next address {NextAddress} exceeds program base {ProgramBase}.", _nextAdr, Machine.PB);
         else
             Machine.Code[_nextAdr++] = instr;
     }
@@ -61,7 +68,7 @@ public class Encoder : IAstVisitor
             return Machine.LBr + currentLevel - entityLevel;
         else
         {
-            Console.WriteLine("Accessing across too many levels");
+            _logger.LogError("Accessing across too many levels. Current: {CurrentLevel}, Entity: {EntityLevel}", currentLevel, entityLevel);
             return Machine.L6r;
         }
     }
@@ -80,7 +87,7 @@ public class Encoder : IAstVisitor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Trouble writing {fileName}: {ex.Message}");
+            _logger.LogError(ex, "Trouble writing to file {FileName}", fileName);
         }
     }
 
@@ -280,7 +287,7 @@ public class Encoder : IAstVisitor
         
         if (adr == null)
         {
-            Console.WriteLine($"Variable {varAssignment.Name.Spelling} not found or has no address");
+            _logger.LogError("Variable {VariableName} not found or has no address", varAssignment.Name.Spelling);
             adr = new Address(0, 0);
         }
 
@@ -622,7 +629,7 @@ public class Encoder : IAstVisitor
         
         if (adr == null)
         {
-            Console.WriteLine($"Variable {varExpression.Name.Spelling} not found or has no address");
+            _logger.LogError("Variable {VariableName} not found or has no address", varExpression.Name.Spelling);
             adr = new Address(0, 0);
         }
 
