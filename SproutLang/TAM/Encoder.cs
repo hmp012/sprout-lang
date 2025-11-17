@@ -1,6 +1,6 @@
 ﻿/*
  * SproutLang TAM Encoder
- * 
+ *
  * Code generator for the Triangle Abstract Machine (TAM)
  * Based on the Triangle compiler encoder pattern
  */
@@ -42,7 +42,8 @@ public class Encoder : IAstVisitor
         };
 
         if (_nextAdr >= Machine.PB)
-            _logger.LogError("Program too large. Next address {NextAddress} exceeds program base {ProgramBase}.", _nextAdr, Machine.PB);
+            _logger.LogError("Program too large. Next address {NextAddress} exceeds program base {ProgramBase}.",
+                _nextAdr, Machine.PB);
         else
             Machine.Code[_nextAdr++] = instr;
     }
@@ -68,7 +69,8 @@ public class Encoder : IAstVisitor
             return Machine.LBr + currentLevel - entityLevel;
         else
         {
-            _logger.LogError("Accessing across too many levels. Current: {CurrentLevel}, Entity: {EntityLevel}", currentLevel, entityLevel);
+            _logger.LogError("Accessing across too many levels. Current: {CurrentLevel}, Entity: {EntityLevel}",
+                currentLevel, entityLevel);
             return Machine.L6r;
         }
     }
@@ -81,7 +83,7 @@ public class Encoder : IAstVisitor
         try
         {
             using var output = new BinaryWriter(File.Open(fileName, FileMode.Create));
-            
+
             for (int i = Machine.CB; i < _nextAdr; i++)
                 Machine.Code[i].Write(output);
         }
@@ -112,44 +114,44 @@ public class Encoder : IAstVisitor
 
     public object? VisitBlock(Block block, object? arg)
     {
-       int before = _nextAdr;
-       Emit(Machine.JUMPop, 0, Machine.CB, 0);
-       
-       // Ensure we have a start address and that its level reflects the current level
-       var startAddress = (arg as Address) ?? new Address();
-       startAddress.Level = _currentLevel;
+        int before = _nextAdr;
+        Emit(Machine.JUMPop, 0, Machine.CB, 0);
 
-       // First pass: handle declarations (they are represented as statements in out AST)
-       object addr = startAddress;
-       foreach (var stmt in block.Statements)
-       {
-           if (stmt is Declaration)
-           {
-               // Declaration visitors should return an Address when given an Address
-               addr = stmt.Visit(this, addr) ?? addr;
-           }
-       }
+        // Ensure we have a start address and that its level reflects the current level
+        var startAddress = (arg as Address) ?? new Address();
+        startAddress.Level = _currentLevel;
 
-       // Compute total size from start displacement
-       int sizeOfDeclarations = (addr as Address)!.Displacement - startAddress.Displacement;
+        // First pass: handle declarations (they are represented as statements in out AST)
+        object addr = startAddress;
+        foreach (var stmt in block.Statements)
+        {
+            if (stmt is Declaration)
+            {
+                // Declaration visitors should return an Address when given an Address
+                addr = stmt.Visit(this, addr) ?? addr;
+            }
+        }
 
-       // Patch the initial jump to here (start of executable code)
-       Patch(before, _nextAdr);
+        // Compute total size from start displacement
+        int sizeOfDeclarations = (addr as Address)!.Displacement - startAddress.Displacement;
 
-       // Allocate space for local declarations if needed
-       if (sizeOfDeclarations > 0)
-           Emit(Machine.PUSHop, 0, 0, sizeOfDeclarations);
+        // Patch the initial jump to here (start of executable code)
+        Patch(before, _nextAdr);
 
-       // Second pass: emit code for non-declaration statements
-       foreach (var statement in block.Statements)
-       {
-           if (statement is not Declaration)
-           {
-               statement.Visit(this, null);
-           }
-       }
+        // Allocate space for local declarations if needed
+        if (sizeOfDeclarations > 0)
+            Emit(Machine.PUSHop, 0, 0, sizeOfDeclarations);
 
-       return sizeOfDeclarations;
+        // Second pass: emit code for non-declaration statements
+        foreach (var statement in block.Statements)
+        {
+            if (statement is not Declaration)
+            {
+                statement.Visit(this, null);
+            }
+        }
+
+        return sizeOfDeclarations;
     }
 
     public object VisitArgList(ArgList argList, object? arg)
@@ -257,7 +259,7 @@ public class Encoder : IAstVisitor
     {
         // Start of loop
         int startAdr = _nextAdr;
- 
+
         // Execute loop body
         repeatUntil.Body.Visit(this, null);
 
@@ -275,7 +277,7 @@ public class Encoder : IAstVisitor
         // Get the declaration reference that was set by the checker
         var decl = varAssignment.Declaration;
         Address? adr = null;
-        
+
         if (decl is VarDecl varDecl)
         {
             adr = varDecl.Address;
@@ -284,7 +286,7 @@ public class Encoder : IAstVisitor
         {
             adr = param.Address;
         }
-        
+
         if (adr == null)
         {
             _logger.LogError("Variable {VariableName} not found or has no address", varAssignment.Name.Spelling);
@@ -303,24 +305,43 @@ public class Encoder : IAstVisitor
 
     public object? VisitArrayAssignment(ArrayAssignment arrayAssignment, object? arg)
     {
-        // Load array base address (TODO: from declaration)
-        // For now, create a dummy address
-        var adr = new Address(0, 0);
-        int register = DisplayRegister(_currentLevel, adr.Level);
-        Emit(Machine.LOADAop, 1, register, adr.Displacement);
+        var decl = arrayAssignment.Declaration;
+        Address? adr = null;
 
-        // Evaluate index
+        if (decl is VarDecl varDecl)
+        {
+            adr = varDecl.Address;
+        }
+
+        if (adr == null)
+        {
+            _logger.LogError("Array {ArrayName} not found or has no address", arrayAssignment.Name.Spelling);
+            adr = new Address(0, 0);
+        }
+
+        // Evaluate the value expression FIRST to push it onto the stack.
+        arrayAssignment.Expr.Visit(this, true);
+
+        // Now, calculate the target address.
+        // Load the base address of the array.
+        int register = DisplayRegister(_currentLevel, adr.Level);
+        Emit(Machine.LOADAop, 0, register, adr.Displacement);
+
+        // Evaluate the index expression.
         arrayAssignment.Index.Visit(this, true);
 
-        // Evaluate value to store - but ArrayAssignment doesn't have Value property yet
-        // TODO: Need to check if this should be part of a statement or expression
+        // Add index to base address.
+        Emit(Machine.CALLop, 0, Machine.PBr, Machine.AddDisplacement);
 
-        // Store indirect
+        // Store indirectly. The stack is now [..., value, address].
+        // STOREI(1) will pop address, then pop value, and store.
         Emit(Machine.STOREIop, 1, 0, 0);
 
         return null;
     }
 
+
+    
     public object? VisitBoolLiteral(BoolLiteral boolLiteral, object? arg)
     {
         return boolLiteral.Value ? Machine.TrueRep : Machine.FalseRep;
@@ -350,7 +371,7 @@ public class Encoder : IAstVisitor
     {
         var currentAddress = (Address)arg!;
         param.Address = new Address(currentAddress);
-        
+
         return new Address(currentAddress, 1);
     }
 
@@ -361,33 +382,41 @@ public class Encoder : IAstVisitor
 
     public object? VisitArrayType(ArrayType n, object? arg)
     {
-        throw new NotImplementedException();
+        var size = n.Size;
+
+        // If used in a declaration context, allocate space for the entire array
+        if (arg is Address address)
+        {
+            return new Address(address, size);
+        }
+
+        return null;
     }
 
     public object? VisitVomitStatement(VomitStatement vomitStatement, object? arg)
     {
         // Evaluate expression to output
         vomitStatement.Expression.Visit(this, true);
-        
+
         // Call appropriate output primitive based on expression type
         // Call appropriate output primitive based on expression type
         if (vomitStatement.Expression is IntLiteralExpression ||
-            (vomitStatement.Expression is VarExpression varExpr && 
-             varExpr.Declaration is VarDecl { Type: SimpleType type } && 
+            (vomitStatement.Expression is VarExpression varExpr &&
+             varExpr.Declaration is VarDecl { Type: SimpleType type } &&
              type.Kind.Equals(BaseType.Int)))
         {
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
         }
         else if (vomitStatement.Expression is CharLiteralExpression ||
-                 (vomitStatement.Expression is VarExpression varExpr2 && 
-                  varExpr2.Declaration is VarDecl { Type: SimpleType type2 } && 
+                 (vomitStatement.Expression is VarExpression varExpr2 &&
+                  varExpr2.Declaration is VarDecl { Type: SimpleType type2 } &&
                   type2?.ToString() == "char"))
         {
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutDisplacement);
         }
         else if (vomitStatement.Expression is BoolLiteralExpression ||
-                 (vomitStatement.Expression is VarExpression varExpr3 && 
-                  varExpr3.Declaration is VarDecl { Type: SimpleType type3 } && 
+                 (vomitStatement.Expression is VarExpression varExpr3 &&
+                  varExpr3.Declaration is VarDecl { Type: SimpleType type3 } &&
                   type3?.ToString() == "bool"))
         {
             // Print boolean as 0/1
@@ -401,7 +430,7 @@ public class Encoder : IAstVisitor
 
         // Output newline
         Emit(Machine.CALLop, 0, Machine.PBr, Machine.PuteolDisplacement);
-        
+
         return null;
     }
 
@@ -422,40 +451,40 @@ public class Encoder : IAstVisitor
     {
         // Get current address allocation position
         var currentAddress = (Address)arg!;
-        
+
         // Jump over the function body (will be patched later)
         int jumpAdr = _nextAdr;
         Emit(Machine.JUMPop, 0, Machine.CBr, 0);
-        
+
         // Store the entry point address for this function
         subRoutineDeclar.Address = new Address(currentAddress.Level, _nextAdr);
-        
+
         // Enter new scope level for function body
         _currentLevel++;
-        
+
         // Create address for parameters starting at offset 0 in the new frame
         // (after the link data which is handled by CALL/RETURN)
         var paramAddress = new Address(_currentLevel, 0);
-        
+
         // Allocate addresses for each parameter using the visitor pattern
         foreach (var param in subRoutineDeclar.Params)
         {
             paramAddress = (Address)param.Visit(this, paramAddress)!;
         }
-        
+
         // Now encode the function body with local variables starting after parameters
         int localVarSize = (int)subRoutineDeclar.Body.Visit(this, paramAddress)!;
-        
+
         // Emit RETURN instruction
         // n = number of parameters, d = link data size (3)
         Emit(Machine.RETURNop, subRoutineDeclar.Params.Count, 0, Machine.LinkDataSize);
-        
+
         // Exit scope
         _currentLevel--;
-        
+
         // Patch the jump to skip over the function
         Patch(jumpAdr, _nextAdr);
-        
+
         // Function declaration itself takes 2 words (closure: static link + code address)
         return new Address(currentAddress, Machine.ClosureSize);
     }
@@ -478,7 +507,18 @@ public class Encoder : IAstVisitor
     {
         var currentAddress = (Address)arg!;
         varDecl.Address = currentAddress;
-        return new Address(currentAddress, 1);
+
+        int size = 1; // Default size for simple types
+
+        if (varDecl.Type is ArrayType arrayType)
+        {
+            if (arrayType.Size is var intLit)
+            {
+                size = intLit;
+            }
+        }
+
+        return new Address(currentAddress, size);
     }
 
     public object? VisitExpression(Expression expression, object? arg)
@@ -615,9 +655,9 @@ public class Encoder : IAstVisitor
         bool valueNeeded = arg is bool b ? b : true;
 
         var decl = varExpression.Declaration;
-        
+
         Address? adr = null;
-        
+
         if (decl is VarDecl varDecl)
         {
             adr = varDecl.Address;
@@ -626,7 +666,7 @@ public class Encoder : IAstVisitor
         {
             adr = param.Address;
         }
-        
+
         if (adr == null)
         {
             _logger.LogError("Variable {VariableName} not found or has no address", varExpression.Name.Spelling);
@@ -660,6 +700,39 @@ public class Encoder : IAstVisitor
 
     public object VisitArrayExpression(ArrayExpression n, object? arg)
     {
-        throw new NotImplementedException();
+        bool valueNeeded = arg is not bool b || b;
+
+        // Get the array declaration reference that was set by the checker
+        var decl = n.Declaration;
+        Address? adr = null;
+
+        if (decl is VarDecl varDecl)
+        {
+            adr = varDecl.Address;
+        }
+
+        if (adr == null)
+        {
+            _logger.LogError("Array {ArrayName} not found or has no address", n.Name.Spelling);
+            adr = new Address(0, 0);
+        }
+
+        if (valueNeeded)
+        {
+            // Load the base address of the array
+            int register = DisplayRegister(_currentLevel, adr.Level);
+            Emit(Machine.LOADAop, 1, register, adr.Displacement);
+
+            // Evaluate the index expression
+            n.Index.Visit(this, true);
+
+            // Add index to base address
+            Emit(Machine.CALLop, 0, Machine.PBr, Machine.AddDisplacement);
+
+            // Load value indirectly from computed address
+            Emit(Machine.LOADIop, 1, 0, 0);
+        }
+
+        return null!;
     }
 }

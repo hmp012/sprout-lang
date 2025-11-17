@@ -139,6 +139,7 @@ public class Checker : IAstVisitor
         {
             if (_identificationTable.Retrieve(id) is VarDecl array)
             {
+                arrayAssignment.Declaration = array;
                 if (array.Type.Visit(this, arg) is ArrayType type)
                 {
                     var size = type.Size;
@@ -422,6 +423,7 @@ public class Checker : IAstVisitor
 
         if (decl is VarDecl varDecl)
         {
+            arrayExpression.Declaration = varDecl;
             if (varDecl.Type is ArrayType arrayType)
             {
                 var indexResult = arrayExpression.Index.Visit(this, arg) as TypeResult;
