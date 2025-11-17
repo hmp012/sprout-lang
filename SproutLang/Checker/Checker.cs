@@ -105,6 +105,8 @@ public class Checker : IAstVisitor
         {
             var varDecl = _identificationTable.Retrieve(id);
             
+            varAssignment.Declaration = varDecl;
+            
             if (varDecl is VarDecl vd)
             {
                 var declaredType = (vd.Type as SimpleType)?.Kind;

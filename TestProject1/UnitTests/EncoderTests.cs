@@ -204,8 +204,7 @@ public class EncoderTests
         string source = @"
         create int x;
         x = 10;
-        vomit x;
-    ";
+        vomit x;";
 
         // Act: Encode the program
         var (encoder, program, errors) = EncodeProgram(source);
