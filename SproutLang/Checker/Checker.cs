@@ -104,6 +104,9 @@ public class Checker : IAstVisitor
         if (id != null)
         {
             var varDecl = _identificationTable.Retrieve(id);
+            
+            varAssignment.Declaration = varDecl;
+            
             if (varDecl is VarDecl vd)
             {
                 var declaredType = (vd.Type as SimpleType)?.Kind;
@@ -358,6 +361,9 @@ public class Checker : IAstVisitor
         }
 
         var decl = _identificationTable.Retrieve(id);
+        
+        // Store the declaration reference in the AST node for the encoder to use
+        varExpression.Declaration = decl;
 
         if (decl is VarDecl varDecl)
         {

@@ -1,9 +1,12 @@
+using SproutLang.TAM;
+
 namespace SproutLang.AST;
 
 public class Param :Declaration
 {
     public SimpleType Type { get; }
     public Identifier Name { get; }
+    public Address? Address { get; set; }
     public Param(SimpleType type, Identifier name)
     {
         Type = type;
