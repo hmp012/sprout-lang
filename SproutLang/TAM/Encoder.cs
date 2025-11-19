@@ -429,6 +429,8 @@ public class Encoder : IAstVisitor
         // Enter new scope level for function body
         _currentLevel++;
         
+        int jumpAddr = _nextAdr;
+        Emit(Machine.JUMPop, 0, Machine.CBr, 0);
         // Create address for parameters starting at offset 0
         var paramAddress = new Address(currentAddress);
         
@@ -449,7 +451,7 @@ public class Encoder : IAstVisitor
         }
         
         // Process function body with local variables starting after link data
-        var localAddress = new Address(paramAddress, Machine.LinkDataSize);
+        var localAddress = new Address(_currentLevel, Machine.LinkDataSize);
         var body = subRoutineDeclar.Body;
         
         // First pass: handle declarations in the function body
@@ -465,6 +467,8 @@ public class Encoder : IAstVisitor
         // Compute size of local variables
         int localVarSize = (addr as Address)!.Displacement - localAddress.Displacement;
         
+        Patch(jumpAddr, _nextAdr);
+
         // Allocate space for local variables if needed
         if (localVarSize > 0)
             Emit(Machine.PUSHop, 0, 0, localVarSize);

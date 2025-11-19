@@ -460,7 +460,7 @@ public class EncoderTests
             {
                 foundReturn = true;
                 // RETURN should have n=2 (number of parameters)
-                Assert.Equal(2, Machine.Code[i].N);
+                Assert.Equal(2, Machine.Code[i].D);
                 _testOutputHelper.WriteLine($"Found RETURN at instruction {i}");
                 break;
             }
@@ -738,22 +738,83 @@ public class EncoderTests
             }
         }
         
-        // Function body should start with JUMP for its own block
+             // Verify parameter address (negative offset)
+        var param = funcDecl.Params[0];
+        Assert.NotNull(param.Address);
+        Assert.Equal(1, param.Address.Level);
+        Assert.Equal(-1, param.Address.Displacement);
+
+        // Verify local variable address allocation
+        var localVar = funcDecl.Body.Statements
+            .OfType<VarDecl>()
+            .FirstOrDefault();
+        Assert.NotNull(localVar);
+        Assert.NotNull(localVar.Address);
+        Assert.Equal(1, localVar.Address.Level);
+        Assert.Equal(3, localVar.Address.Displacement); // After link data (3 words)
+
+        // Function body should start with JUMP over declarations
         Assert.Equal(Machine.JUMPop, Machine.Code[funcStart].Op);
+        int jumpTarget = Machine.Code[funcStart].D;
+
+        // Should have PUSH for local variable
+        Assert.Equal(Machine.PUSHop, Machine.Code[jumpTarget].Op);
+        Assert.Equal(1, Machine.Code[jumpTarget].D); // 1 word for local
+
+        // Verify assignment: local = param
+        // Should have LOAD param, then STORE local
+        int currentInstr = jumpTarget + 1;
+        Assert.Equal(Machine.LOADop, Machine.Code[currentInstr].Op);
+        Assert.Equal(-1, Machine.Code[currentInstr].D); // Load param
+        currentInstr++;
+        Assert.Equal(Machine.STOREop, Machine.Code[currentInstr].Op);
+        Assert.Equal(3, Machine.Code[currentInstr].D); // Store to local
+
+        // Verify: local = local + 10
+        // LOAD local, LOADL 10, CALL add, STORE local
+        currentInstr++;
+        Assert.Equal(Machine.LOADop, Machine.Code[currentInstr].Op);
+        Assert.Equal(3, Machine.Code[currentInstr].D); // Load local
+        currentInstr++;
+        Assert.Equal(Machine.LOADLop, Machine.Code[currentInstr].Op);
+        Assert.Equal(10, Machine.Code[currentInstr].D); // Load literal 10
+        currentInstr++;
+        Assert.Equal(Machine.CALLop, Machine.Code[currentInstr].Op);
+        Assert.Equal(Machine.AddDisplacement, Machine.Code[currentInstr].D); // Add
+        currentInstr++;
+        Assert.Equal(Machine.STOREop, Machine.Code[currentInstr].Op);
+        Assert.Equal(3, Machine.Code[currentInstr].D); // Store to local
+
+        // Verify vomit local
+        currentInstr++;
+        Assert.Equal(Machine.LOADop, Machine.Code[currentInstr].Op);
+        Assert.Equal(3, Machine.Code[currentInstr].D); // Load local
+        currentInstr++;
+        Assert.Equal(Machine.CALLop, Machine.Code[currentInstr].Op);
+        Assert.Equal(Machine.PutintDisplacement, Machine.Code[currentInstr].D);
+        currentInstr++;
+        Assert.Equal(Machine.CALLop, Machine.Code[currentInstr].Op);
+        Assert.Equal(Machine.PuteolDisplacement, Machine.Code[currentInstr].D);
+
+        // Verify RETURN instruction
+        currentInstr++;
+        Assert.Equal(Machine.LOADLop, Machine.Code[currentInstr].Op); // Dummy return value
+        currentInstr++;
+        Assert.Equal(Machine.RETURNop, Machine.Code[currentInstr].Op);
+        Assert.Equal(1, Machine.Code[currentInstr].N); // Return 1 word
+        Assert.Equal(1, Machine.Code[currentInstr].D); // Pop 1 parameter
+
+        // Verify function call: test(5)
+        int callIdx = FindInstructionIndex(instr => 
+            instr.Op == Machine.CALLop && instr.R != Machine.PBr, 
+            jumpTarget + 1, 
+            Machine.CB + 50);
         
-        // Should find a PUSH instruction to allocate space for local variable
-        bool foundPush = false;
-        for (int i = funcStart; i < funcStart + 10; i++)
-        {
-            if (Machine.Code[i].Op == Machine.PUSHop)
-            {
-                foundPush = true;
-                Assert.Equal(1, Machine.Code[i].D); // 1 word for local variable
-                _testOutputHelper.WriteLine($"Found PUSH for local variable at {i}");
-                break;
-            }
-        }
-        Assert.True(foundPush);
+        Assert.True(callIdx > 0, "Function call not found");
+        Assert.Equal(Machine.LOADLop, Machine.Code[callIdx - 1].Op);
+        Assert.Equal(5, Machine.Code[callIdx - 1].D); // Argument value
+        Assert.Equal(Machine.CBr, Machine.Code[callIdx].R);
+        Assert.Equal(funcStart, Machine.Code[callIdx].D);
     }
     
     [Fact]
