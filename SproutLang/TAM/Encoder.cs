@@ -370,25 +370,25 @@ public class Encoder : IAstVisitor
         vomitStatement.Expression.Visit(this, true);
         
         // Call appropriate output primitive based on expression type
-        // Call appropriate output primitive based on expression type
         if (vomitStatement.Expression is IntLiteralExpression ||
             (vomitStatement.Expression is VarExpression varExpr && 
-             varExpr.Declaration is VarDecl { Type: SimpleType type } && 
-             type.Kind.Equals(BaseType.Int)))
+             (varExpr.Declaration is VarDecl { Type: SimpleType type } && 
+             type.Kind.Equals(BaseType.Int) ||
+             varExpr.Declaration is Param { Type: SimpleType paramType } && paramType.Kind.Equals(BaseType.Int))))
         {
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
         }
         else if (vomitStatement.Expression is CharLiteralExpression ||
-                 (vomitStatement.Expression is VarExpression varExpr2 && 
-                  varExpr2.Declaration is VarDecl { Type: SimpleType type2 } && 
-                  type2?.ToString() == "char"))
+                 (vomitStatement.Expression is VarExpression varExpr2 &&
+                  (varExpr2.Declaration is VarDecl { Type: SimpleType type2 } && type2.Kind.Equals(BaseType.Char) ||
+                   varExpr2.Declaration is Param { Type: SimpleType paramType2 } && paramType2.Kind.Equals(BaseType.Char))))
         {
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutDisplacement);
         }
         else if (vomitStatement.Expression is BoolLiteralExpression ||
-                 (vomitStatement.Expression is VarExpression varExpr3 && 
-                  varExpr3.Declaration is VarDecl { Type: SimpleType type3 } && 
-                  type3?.ToString() == "bool"))
+                 (vomitStatement.Expression is VarExpression varExpr3 &&
+                  (varExpr3.Declaration is VarDecl { Type: SimpleType type3 } && type3.Kind.Equals(BaseType.Bool) ||
+                   varExpr3.Declaration is Param { Type: SimpleType paramType3 } && paramType3.Kind.Equals(BaseType.Bool))))
         {
             // Print boolean as 0/1
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);
@@ -423,41 +423,75 @@ public class Encoder : IAstVisitor
         // Get current address allocation position
         var currentAddress = (Address)arg!;
         
-        // Jump over the function body (will be patched later)
-        int jumpAdr = _nextAdr;
-        Emit(Machine.JUMPop, 0, Machine.CBr, 0);
-        
         // Store the entry point address for this function
-        subRoutineDeclar.Address = new Address(currentAddress.Level, _nextAdr);
+        subRoutineDeclar.Address = new Address(_currentLevel, _nextAdr);
         
         // Enter new scope level for function body
         _currentLevel++;
         
-        // Create address for parameters starting at offset 0 in the new frame
-        // (after the link data which is handled by CALL/RETURN)
-        var paramAddress = new Address(_currentLevel, 0);
+        // Create address for parameters starting at offset 0
+        var paramAddress = new Address(currentAddress);
         
-        // Allocate addresses for each parameter using the visitor pattern
+        // Count parameter size
+        int paramSize = 0;
         foreach (var param in subRoutineDeclar.Params)
         {
-            paramAddress = (Address)param.Visit(this, paramAddress)!;
+            paramSize++;
         }
         
-        // Now encode the function body with local variables starting after parameters
-        int localVarSize = (int)subRoutineDeclar.Body.Visit(this, paramAddress)!;
+        // Allocate addresses for each parameter at negative offsets
+        // (parameters are below the local base in TAM)
+        int offset = -paramSize;
+        foreach (var param in subRoutineDeclar.Params)
+        {
+            param.Address = new Address(_currentLevel, offset);
+            offset++;
+        }
+        
+        // Process function body with local variables starting after link data
+        var localAddress = new Address(paramAddress, Machine.LinkDataSize);
+        var body = subRoutineDeclar.Body;
+        
+        // First pass: handle declarations in the function body
+        object addr = localAddress;
+        foreach (var stmt in body.Statements)
+        {
+            if (stmt is Declaration)
+            {
+                addr = stmt.Visit(this, addr) ?? addr;
+            }
+        }
+        
+        // Compute size of local variables
+        int localVarSize = (addr as Address)!.Displacement - localAddress.Displacement;
+        
+        // Allocate space for local variables if needed
+        if (localVarSize > 0)
+            Emit(Machine.PUSHop, 0, 0, localVarSize);
+        
+        // Second pass: emit code for non-declaration statements
+        foreach (var stmt in body.Statements)
+        {
+            if (stmt is not Declaration)
+            {
+                stmt.Visit(this, null);
+            }
+        }
+        
+        // Push a dummy return value (0) since our functions are procedures
+        // TAM requires at least 1 word on the stack before RETURN
+        Emit(Machine.LOADLop, 1, 0, 0);
         
         // Emit RETURN instruction
-        // n = number of parameters, d = link data size (3)
-        Emit(Machine.RETURNop, subRoutineDeclar.Params.Count, 0, Machine.LinkDataSize);
+        // Returns 1 word (the return value), pops paramSize words of arguments
+        Emit(Machine.RETURNop, 1, 0, paramSize);
         
         // Exit scope
         _currentLevel--;
         
-        // Patch the jump to skip over the function
-        Patch(jumpAdr, _nextAdr);
-        
-        // Function declaration itself takes 2 words (closure: static link + code address)
-        return new Address(currentAddress, Machine.ClosureSize);
+        // Function declarations don't take up stack space
+        // Return the same address (no space allocated)
+        return arg;
     }
 
     public object VisitCallStatement(CallStatement callStatement, object? arg)
@@ -645,16 +679,28 @@ public class Encoder : IAstVisitor
     public object VisitCallExpr(CallExpr callExpr, object? arg)
     {
         bool valueNeeded = arg is bool b ? b : true;
-
-        // Evaluate arguments
+        
+        // Evaluate arguments (pushes them onto the stack)
         callExpr.Arguments.Visit(this, null);
-
-        // TODO: Get function address and call it
-        // For now, just a placeholder
-
+        
+        // Get the function's address
+        var decl = callExpr.Declaration;
+        if (decl is not SubRoutineDeclar subRoutineDecl)
+        {
+            _logger.LogError("Function {functionName} not found", callExpr.Callee.Spelling);
+            return null!;
+        }
+        
+        Address adr = subRoutineDecl.Address!;
+        int register = DisplayRegister(_currentLevel, adr.Level);
+        
+        // Emit CALL instruction
+        Emit(Machine.CALLop, register, Machine.CBr, adr.Displacement);
+        
+        // Pop return value if not needed
         if (!valueNeeded)
             Emit(Machine.POPop, 0, 0, 1);
-
+        
         return null!;
     }
 

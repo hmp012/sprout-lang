@@ -3,6 +3,7 @@ namespace SproutLang.AST;
 public class CallStatement: Statement
 {
     public CallExpr Call { get; }
+    public Declaration? Declaration { get; set; }
 
     public CallStatement(CallExpr call)
     {
