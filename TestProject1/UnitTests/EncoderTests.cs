@@ -687,8 +687,8 @@ public class EncoderTests
         Assert.NotNull(funcDecls[0].Address);
         Assert.NotNull(funcDecls[1].Address);
         
-        var outputPath = Path.Combine(Path.GetTempPath(), "test_nestedFuncCalls.tam");
-        encoder.SaveTargetProgram(outputPath);
+        var outputPath = Path.GetTempPath();
+        encoder.SaveTargetProgram(Path.Combine(outputPath, "test_nestedFuncCalls.tam"));
         _testOutputHelper.WriteLine($"TAM code for nested function calls saved to: {outputPath}");
         
         _testOutputHelper.WriteLine($"innerFunc at displacement {funcDecls[0].Address.Displacement}");
@@ -1022,5 +1022,187 @@ public class EncoderTests
         _testOutputHelper.WriteLine($"TAM code for function with mixed types saved to : {outputPath}");
         // Should find three LOADL instructions for the arguments
         
+    }
+
+    [Fact]
+    public void TestLoopStatement_GeneratesCorrectInstructions()
+    {
+        // Arrange: simple while loop
+        string source = @"
+        create int x;
+        x = 0;
+        repeat 5 times {
+            x = x + 1;
+            vomit x;
+        }";
+        
+        // Act: encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+        Assert.Empty(errors);
+        Assert.NotNull(encoder);
+        
+        _testOutputHelper.WriteLine("Generated TAM instructions for repeat times:");
+        for (int i = Machine.CB; i < Machine.CB + 30; i++)
+        {
+            var instr = Machine.Code[i];
+            if (instr.Op != 0 || instr.D != 0 || instr.N != 0 || instr.R != 0)
+            {
+                _testOutputHelper.WriteLine($"{i}: Op={instr.Op}, N={instr.N}, R={instr.R}, D={instr.D}");
+            }
+        }
+        
+        // Find the repeat times loop structure
+        // Should have: LOADL 5 (counter), then loop with LOAD to check counter, compare, JUMPIF(0) to exit
+        
+        // Find LOADL 5 for the counter initialization
+        int loadCounterIdx = FindInstructionIndex(instr => 
+            instr.Op == Machine.LOADLop && instr.D == 5, 
+            Machine.CB, Machine.CB + 30);
+        Assert.True(loadCounterIdx > 0, "Counter initialization (LOADL 5) not found");
+        
+        // After counter init, should have loop start with LOAD to check counter
+        int loopStartIdx = loadCounterIdx + 1;
+        Assert.Equal(Machine.LOADop, Machine.Code[loopStartIdx].Op);
+        Assert.Equal(Machine.STr, Machine.Code[loopStartIdx].R);
+        Assert.Equal(-1, Machine.Code[loopStartIdx].D); // Load counter from stack
+        
+        // Should have comparison with 0
+        Assert.Equal(Machine.LOADLop, Machine.Code[loopStartIdx + 1].Op);
+        Assert.Equal(0, Machine.Code[loopStartIdx + 1].D);
+        
+        // Should have CALL gt (greater than)
+        Assert.Equal(Machine.CALLop, Machine.Code[loopStartIdx + 2].Op);
+        Assert.Equal(Machine.GtDisplacement, Machine.Code[loopStartIdx + 2].D);
+        
+        // Should have JUMPIF(0) to exit loop
+        int jumpIfIdx = loopStartIdx + 3;
+        Assert.Equal(Machine.JUMPIFop, Machine.Code[jumpIfIdx].Op);
+        Assert.Equal(0, Machine.Code[jumpIfIdx].N); // Jump if false
+        
+        // Should have decrement logic: LOAD counter, LOADL 1, CALL sub, STORE counter
+        var decrementIndices = FindAllInstructionIndices(instr => 
+            instr.Op == Machine.CALLop && instr.D == Machine.SubDisplacement,
+            loopStartIdx, loopStartIdx + 30);
+        Assert.NotEmpty(decrementIndices);
+        
+        // After decrement, should have JUMP back to loop start
+        int jumpBackIdx = FindInstructionIndex(instr => 
+            instr.Op == Machine.JUMPop && instr.D == loopStartIdx,
+            loopStartIdx, loopStartIdx + 30);
+        Assert.True(jumpBackIdx > 0, "JUMP back to loop start not found");
+        
+        var outputPath = Path.Combine(Path.GetTempPath(), "test_repeatTimes.tam");
+        encoder.SaveTargetProgram(outputPath);
+        _testOutputHelper.WriteLine($"TAM code for repeat times loop saved to: {outputPath}");
+    }
+    
+    [Fact]
+    public void TestRepeatUntilLoop_GeneratesCorrectInstructions()
+    {
+        // Arrange: repeat until loop
+        string source = @"
+        create int x;
+        x = 0;
+        repeat until (x == 3) {
+            x = x + 1;
+        }
+        vomit x;
+       ";
+        
+        // Act: encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+        Assert.Empty(errors);
+        Assert.NotNull(encoder);
+        
+        _testOutputHelper.WriteLine("Generated TAM instructions for repeat until:");
+        for (int i = Machine.CB; i < Machine.CB + 30; i++)
+        {
+            var instr = Machine.Code[i];
+            if (instr.Op != 0 || instr.D != 0 || instr.N != 0 || instr.R != 0)
+            {
+                _testOutputHelper.WriteLine($"{i}: Op={instr.Op}, N={instr.N}, R={instr.R}, D={instr.D}");
+            }
+        }
+        
+        var outputPath = Path.Combine(Path.GetTempPath(), "test_repeatUntil.tam");
+        encoder.SaveTargetProgram(outputPath);
+        _testOutputHelper.WriteLine($"TAM code for repeat until loop saved to: {outputPath}");
+
+        
+        // Find the repeat until loop structure
+        // Should have: loop body first, then condition check, then JUMPIF(0) back to loop start
+        
+        // Find the assignment x = 0
+        int assignZeroIdx = FindInstructionIndex(instr => 
+            instr.Op == Machine.LOADLop && instr.D == 0,
+            Machine.CB, Machine.CB + 10);
+        Assert.True(assignZeroIdx > 0, "Initial assignment not found");
+        
+        // Loop should start after the initial setup
+        // Find the loop body - should have increment (x = x + 1)
+        // This will have: LOAD x, LOADL 1, CALL add, STORE x
+        
+        var addIndices = FindAllInstructionIndices(instr => 
+            instr.Op == Machine.CALLop && instr.D == Machine.AddDisplacement,
+            Machine.CB, Machine.CB + 30);
+        Assert.NotEmpty(addIndices);
+        int loopBodyIdx = addIndices[0]; // First add is in the loop
+        
+        // After loop body, should have condition check: x == 3
+        // This will be: LOAD x, LOADL 3, CALL eq
+        var eqIndices = FindAllInstructionIndices(instr => 
+            instr.Op == Machine.CALLop && instr.D == Machine.EqDisplacement,
+            loopBodyIdx, loopBodyIdx + 20);
+        Assert.NotEmpty(eqIndices);
+        int conditionCheckIdx = eqIndices[0];
+        
+        // After condition check, should have JUMPIF(0) back to loop start
+        int jumpBackIdx = conditionCheckIdx + 1;
+        Assert.Equal(Machine.JUMPIFop, Machine.Code[jumpBackIdx].Op);
+        Assert.Equal(0, Machine.Code[jumpBackIdx].N); // Jump if false (condition not met)
+        
+        // The jump should go back to before the loop body
+        Assert.True(Machine.Code[jumpBackIdx].D < jumpBackIdx, "JUMPIF should jump backwards");
+        
+    }
+    
+    [Fact]
+    public void TestRepeatTimesWithVariable_GeneratesCorrectCode()
+    {
+        // Arrange: repeat times with variable count
+        string source = @"
+        create int count;
+        create int sum;
+        count = 3;
+        sum = 0;
+        repeat count times {
+            sum = sum + 10;
+        }
+        vomit sum;";
+        
+        // Act: encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+        Assert.Empty(errors);
+        Assert.NotNull(encoder);
+        
+        _testOutputHelper.WriteLine("Generated TAM instructions for repeat times with variable:");
+        for (int i = Machine.CB; i < Machine.CB + 35; i++)
+        {
+            var instr = Machine.Code[i];
+            if (instr.Op != 0 || instr.D != 0 || instr.N != 0 || instr.R != 0)
+            {
+                _testOutputHelper.WriteLine($"{i}: Op={instr.Op}, N={instr.N}, R={instr.R}, D={instr.D}");
+            }
+        }
+        
+        // Should have LOAD count (not LOADL) to get the loop counter
+        var loadIndices = FindAllInstructionIndices(instr => 
+            instr.Op == Machine.LOADop && instr.R == Machine.SBr && instr.D == 0,
+            Machine.CB, Machine.CB + 35);
+        Assert.NotEmpty(loadIndices);
+        
+        var outputPath = Path.Combine(Path.GetTempPath(), "test_repeatTimesVariable.tam");
+        encoder.SaveTargetProgram(outputPath);
+        _testOutputHelper.WriteLine($"TAM code for repeat times with variable saved to: {outputPath}");
     }
 }

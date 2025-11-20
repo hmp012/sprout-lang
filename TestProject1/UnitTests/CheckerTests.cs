@@ -39,7 +39,7 @@ public class CheckerTests
         try
         {
             var logger = new TestLogger();
-            var sourceFile = new SourceFile(tempFile);
+            using var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var parser = new ASTParser(scanner);
             var program = parser.ParseProgram();

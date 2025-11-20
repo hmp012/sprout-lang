@@ -215,36 +215,42 @@ public class Encoder : IAstVisitor
 
     public object? VisitRepeatTimes(RepeatTimes repeatTimes, object? arg)
     {
-        // Evaluate the count expression
+        // Evaluate the count expression and push onto stack
         repeatTimes.Times.Visit(this, true);
 
-        // Start of loop
+        // Start of loop - counter is now at a fixed position on the stack
         int startAdr = _nextAdr;
 
-        // Duplicate counter on stack
+        // Load counter to check it (counter stays on stack)
         Emit(Machine.LOADop, 1, Machine.STr, -1);
 
         // Check if counter > 0
         Emit(Machine.LOADLop, 1, 0, 0);
         Emit(Machine.CALLop, 0, Machine.PBr, Machine.GtDisplacement);
 
-        // Jump out of loop if counter <= 0
+        // Jump out of loop if counter <= 0 (comparison result is 0)
         int jumpAdr = _nextAdr;
         Emit(Machine.JUMPIFop, 0, Machine.CBr, 0);
 
         // Execute loop body
         repeatTimes.Body.Visit(this, null);
 
-        // Decrement counter
-        Emit(Machine.LOADop, 1, Machine.STr, -1);
-        Emit(Machine.LOADLop, 1, 0, 1);
-        Emit(Machine.CALLop, 0, Machine.PBr, Machine.SubDisplacement);
-        Emit(Machine.STOREop, 1, Machine.STr, -1);
+        // Decrement counter properly
+        // Current stack: [counter]
+        Emit(Machine.LOADop, 1, Machine.STr, -1);     // Stack: [counter, counter]
+        Emit(Machine.LOADLop, 1, 0, 1);               // Stack: [counter, counter, 1]
+        Emit(Machine.CALLop, 0, Machine.PBr, Machine.SubDisplacement);  // Stack: [counter, counter-1]
+        
+        // Now we have [old_counter, new_counter] and we need just [new_counter]
+        // STORE pops the value and stores it, so:
+        // Store new_counter to the position of old_counter (which is at offset -2 from top)
+        Emit(Machine.STOREop, 1, Machine.STr, -2);    // Pops new_counter and stores to old_counter position
+                                                       // Stack is now: [new_counter] (the one we just stored)
 
         // Jump back to start
         Emit(Machine.JUMPop, 0, Machine.CBr, startAdr);
 
-        // Patch exit jump
+        // Patch exit jump to here
         Patch(jumpAdr, _nextAdr);
 
         // Pop counter off stack
@@ -554,25 +560,18 @@ public class Encoder : IAstVisitor
                 case "/":
                     Emit(Machine.CALLop, 0, Machine.PBr, Machine.DivDisplacement);
                     break;
-                case "%":
-                    Emit(Machine.CALLop, 0, Machine.PBr, Machine.ModDisplacement);
-                    break;
                 case "<":
                     Emit(Machine.CALLop, 0, Machine.PBr, Machine.LtDisplacement);
-                    break;
-                case "<=":
-                    Emit(Machine.CALLop, 0, Machine.PBr, Machine.LeDisplacement);
                     break;
                 case ">":
                     Emit(Machine.CALLop, 0, Machine.PBr, Machine.GtDisplacement);
                     break;
-                case ">=":
-                    Emit(Machine.CALLop, 0, Machine.PBr, Machine.GeDisplacement);
-                    break;
                 case "==":
+                    Emit(Machine.LOADLop, 0, 0, 1);
                     Emit(Machine.CALLop, 0, Machine.PBr, Machine.EqDisplacement);
                     break;
                 case "!=":
+                    Emit(Machine.LOADLop, 0, 0, 1);
                     Emit(Machine.CALLop, 0, Machine.PBr, Machine.NeDisplacement);
                     break;
                 case "&&":
