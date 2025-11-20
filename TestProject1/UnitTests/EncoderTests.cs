@@ -310,7 +310,7 @@ public class EncoderTests
         // Arrange
         string source = @"
         create [int, 10] arr;
-        arr[0] = 65;
+        arr[0] = 30;
         vomit arr[0];
     ";
 
@@ -336,7 +336,7 @@ public class EncoderTests
 // Array assignment sequence starts after PUSH
         int assignmentStart = codeStart + 1;
         Assert.Equal(Machine.LOADLop, Machine.Code[assignmentStart].Op);
-        Assert.Equal(65, Machine.Code[assignmentStart].D); // Value FIRST
+        Assert.Equal(30, Machine.Code[assignmentStart].D); // Value FIRST
         Assert.Equal(Machine.LOADAop, Machine.Code[assignmentStart + 1].Op);
         Assert.Equal(Machine.LOADLop, Machine.Code[assignmentStart + 2].Op);
         Assert.Equal(0, Machine.Code[assignmentStart + 2].D); // Index 0

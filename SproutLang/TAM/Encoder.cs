@@ -508,14 +508,11 @@ public class Encoder : IAstVisitor
         var currentAddress = (Address)arg!;
         varDecl.Address = currentAddress;
 
-        int size = 1; // Default size for simple types
+        var size = 1; // Default size for simple types
 
         if (varDecl.Type is ArrayType arrayType)
         {
-            if (arrayType.Size is var intLit)
-            {
-                size = intLit;
-            }
+                size = arrayType.Size;
         }
 
         return new Address(currentAddress, size);
@@ -721,7 +718,7 @@ public class Encoder : IAstVisitor
         {
             // Load the base address of the array
             int register = DisplayRegister(_currentLevel, adr.Level);
-            Emit(Machine.LOADAop, 1, register, adr.Displacement);
+            Emit(Machine.LOADAop, 0, register, adr.Displacement);
 
             // Evaluate the index expression
             n.Index.Visit(this, true);
