@@ -386,15 +386,15 @@ public class Encoder : IAstVisitor
         }
         else if (vomitStatement.Expression is CharLiteralExpression ||
                  (vomitStatement.Expression is VarExpression varExpr2 &&
-                  (varExpr2.Declaration is VarDecl { Type: SimpleType type2 } && type2.Kind.Equals(BaseType.Char) ||
-                   varExpr2.Declaration is Param { Type: SimpleType paramType2 } && paramType2.Kind.Equals(BaseType.Char))))
+                  ((varExpr2.Declaration is VarDecl { Type: SimpleType type2 } && type2.Kind.Equals(BaseType.Char)) ||
+                   (varExpr2.Declaration is Param { Type: SimpleType paramType2 } && paramType2.Kind.Equals(BaseType.Char)))))
         {
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutDisplacement);
         }
         else if (vomitStatement.Expression is BoolLiteralExpression ||
                  (vomitStatement.Expression is VarExpression varExpr3 &&
-                  (varExpr3.Declaration is VarDecl { Type: SimpleType type3 } && type3.Kind.Equals(BaseType.Bool) ||
-                   varExpr3.Declaration is Param { Type: SimpleType paramType3 } && paramType3.Kind.Equals(BaseType.Bool))))
+                  ((varExpr3.Declaration is VarDecl { Type: SimpleType type3 } && type3.Kind.Equals(BaseType.Bool)) ||
+                   (varExpr3.Declaration is Param { Type: SimpleType paramType3 } && paramType3.Kind.Equals(BaseType.Bool)))))
         {
             // Print boolean as 0/1
             Emit(Machine.CALLop, 0, Machine.PBr, Machine.PutintDisplacement);

@@ -73,16 +73,17 @@ public class ASTParserTests
             Assert.NotNull(ifStmt.ElseBlock);
         }
 
-        /*[Fact]
+        [Fact]
         public void Parse_RepeatTimes_ShouldContainTimesAndBody()
         {
             string code = "repeat 3 times { vomit 1; }";
             var program = AssertParses(code);
 
             var loop = Assert.IsType<RepeatTimes>(program.Block.Statements[0]);
-            Assert.Equal(3, loop.Times.Literal.Value);
+            var times = Assert.IsType<IntLiteralExpression>(loop.Times);
+            Assert.Equal(3, times.Literal.Value);
             Assert.Single(loop.Body.Statements);
-        }*/
+        }
 
         [Fact]
         public void Parse_RepeatUntil_ShouldContainConditionAndBody()

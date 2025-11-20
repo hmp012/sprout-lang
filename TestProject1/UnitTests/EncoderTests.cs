@@ -369,7 +369,7 @@ public class EncoderTests
         
         var outputPath = Path.Combine(Path.GetTempPath(), "test_varDeclBool.tam");
         encoder.SaveTargetProgram(outputPath);
-        _testOutputHelper.WriteLine($"TAM code for char variable saved to: {outputPath}");
+        _testOutputHelper.WriteLine($"TAM code for bool variable saved to: {outputPath}");
     }
     
     
@@ -527,8 +527,6 @@ public class EncoderTests
         string outputPath = Path.Combine(Path.GetTempPath(), "test_funDecl.tam");
         encoder.SaveTargetProgram(outputPath);
         _testOutputHelper.WriteLine($"TAM code for function called saved to: {outputPath}");
-
-        //Assert.True(foundCall, "Should find a CALL instruction for the function");
     }
     
     private List<int> FindAllInstructionIndices(Func<dynamic, bool> predicate, int start = Machine.CB, int? end = null)
