@@ -1,3 +1,5 @@
+using SproutLang.TAM;
+
 namespace SproutLang.AST;
 public class ArrayType(BaseType elementType, int size) : TypeSpec
 {
