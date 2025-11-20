@@ -10,7 +10,7 @@ public class ScannerTests
         File.WriteAllText(tempFile, code);
         try
         {
-            var sourceFile = new SourceFile(tempFile);
+            using var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var tokens = new List<Token>();
             Token token;

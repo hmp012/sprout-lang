@@ -250,7 +250,11 @@ public class Checker : IAstVisitor
 
     public object VisitCallStatement(CallStatement callStatement, object? arg)
     {
-        throw new NotImplementedException();
+        callStatement.Call.Visit(this, arg);
+        
+        callStatement.Declaration = callStatement.Call.Declaration;
+        
+        return null;
     }
 
     public object? VisitDeclaration(Declaration declaration, object? arg)
@@ -390,6 +394,8 @@ public class Checker : IAstVisitor
         if (id != null)
         {
             Declaration? declaration = _identificationTable.Retrieve(id);
+            
+            callExpr.Declaration = declaration;
 
             if (declaration is SubRoutineDeclar subRoutineDeclar)
             {

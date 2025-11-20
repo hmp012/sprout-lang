@@ -61,10 +61,10 @@ public class Instruction
         var inst = new Instruction();
         try
         {
-            inst.Op = input.ReadInt32();
-            inst.R = input.ReadInt32();
-            inst.N = input.ReadInt32();
-            inst.D = input.ReadInt32();
+            inst.Op = ReadBigEndianInt32(input);
+            inst.R = ReadBigEndianInt32(input);
+            inst.N = ReadBigEndianInt32(input);
+            inst.D = ReadBigEndianInt32(input);
             return inst;
         }
         catch (EndOfStreamException)
@@ -72,5 +72,12 @@ public class Instruction
             return null;
         }
     }
-}
 
+    private static int ReadBigEndianInt32(BinaryReader input)
+    {
+        byte[] bytes = input.ReadBytes(4);
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(bytes);
+        return BitConverter.ToInt32(bytes, 0);
+    }
+}

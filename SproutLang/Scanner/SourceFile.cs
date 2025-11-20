@@ -1,11 +1,12 @@
 namespace SproutLang.Scanner;
 
-public class SourceFile
+public class SourceFile : IDisposable
 {
     public const char EOL = '\n';
     public const char EOT = (char)0;
 
     private FileStream _source;
+    private bool _disposed = false;
 
     public SourceFile(string sourceFileName)
     {
@@ -35,5 +36,28 @@ public class SourceFile
         {    
             return EOT;
         }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _source?.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+
+    ~SourceFile()
+    {
+        Dispose(false);
     }
 }

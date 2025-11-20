@@ -11,4 +11,8 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="equality_test_fixed.txt" />
+    </ItemGroup>
+
 </Project>
