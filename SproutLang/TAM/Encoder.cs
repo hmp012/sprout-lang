@@ -169,6 +169,9 @@ public class Encoder : IAstVisitor
 
     public object? VisitIfStatement(IfStatement ifStatement, object? arg)
     {
+        // List to collect all jumps that should go to the end of the if statement
+        var jumpToEndAddresses = new List<int>();
+        
         // Evaluate condition of first branch
         ifStatement.First.Condition.Visit(this, true);
 
@@ -179,8 +182,8 @@ public class Encoder : IAstVisitor
         // Then branch
         ifStatement.First.Block.Visit(this, null);
 
-        // Jump over else part
-        int jump2Adr = _nextAdr;
+        // Jump over else part - save this address to patch later
+        jumpToEndAddresses.Add(_nextAdr);
         Emit(Machine.JUMPop, 0, Machine.CBr, 0);
 
         // Patch first jump to point here (else part)
@@ -193,7 +196,12 @@ public class Encoder : IAstVisitor
             int elseIfJump = _nextAdr;
             Emit(Machine.JUMPIFop, 0, Machine.CBr, 0);
             elseIfBranch.Block.Visit(this, null);
+            
+            // Jump to end after executing this else-if block - save this address too
+            jumpToEndAddresses.Add(_nextAdr);
             Emit(Machine.JUMPop, 0, Machine.CBr, 0);
+            
+            // Patch the conditional jump to point to next else-if or else block
             Patch(elseIfJump, _nextAdr);
         }
 
@@ -201,8 +209,11 @@ public class Encoder : IAstVisitor
         if (ifStatement.ElseBlock != null)
             ifStatement.ElseBlock.Visit(this, null);
 
-        // Patch second jump to point here (after if statement)
-        Patch(jump2Adr, _nextAdr);
+        // Patch ALL jumps to end to point here (after if statement)
+        foreach (var jumpAdr in jumpToEndAddresses)
+        {
+            Patch(jumpAdr, _nextAdr);
+        }
 
         return null;
     }
