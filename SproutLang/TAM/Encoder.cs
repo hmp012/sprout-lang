@@ -169,6 +169,9 @@ public class Encoder : IAstVisitor
 
     public object? VisitIfStatement(IfStatement ifStatement, object? arg)
     {
+        // List to collect all jumps that should go to the end of the if statement
+        var jumpToEndAddresses = new List<int>();
+        
         // Evaluate condition of first branch
         ifStatement.First.Condition.Visit(this, true);
 
@@ -179,8 +182,8 @@ public class Encoder : IAstVisitor
         // Then branch
         ifStatement.First.Block.Visit(this, null);
 
-        // Jump over else part
-        int jump2Adr = _nextAdr;
+        // Jump over else part - save this address to patch later
+        jumpToEndAddresses.Add(_nextAdr);
         Emit(Machine.JUMPop, 0, Machine.CBr, 0);
 
         // Patch first jump to point here (else part)
@@ -193,7 +196,12 @@ public class Encoder : IAstVisitor
             int elseIfJump = _nextAdr;
             Emit(Machine.JUMPIFop, 0, Machine.CBr, 0);
             elseIfBranch.Block.Visit(this, null);
+            
+            // Jump to end after executing this else-if block - save this address too
+            jumpToEndAddresses.Add(_nextAdr);
             Emit(Machine.JUMPop, 0, Machine.CBr, 0);
+            
+            // Patch the conditional jump to point to next else-if or else block
             Patch(elseIfJump, _nextAdr);
         }
 
@@ -201,8 +209,11 @@ public class Encoder : IAstVisitor
         if (ifStatement.ElseBlock != null)
             ifStatement.ElseBlock.Visit(this, null);
 
-        // Patch second jump to point here (after if statement)
-        Patch(jump2Adr, _nextAdr);
+        // Patch ALL jumps to end to point here (after if statement)
+        foreach (var jumpAdr in jumpToEndAddresses)
+        {
+            Patch(jumpAdr, _nextAdr);
+        }
 
         return null;
     }
@@ -413,13 +424,50 @@ public class Encoder : IAstVisitor
 
     public object? VisitListenStatement(ListenStatement listenStatement, object? arg)
     {
-        // Call getint primitive
-        Emit(Machine.CALLop, 0, Machine.PBr, Machine.GetintDisplacement);
+        // Get the declaration reference that was set by the checker
+        var decl = listenStatement.Declaration;
+        Address? adr = null;
+        BaseType? varType = null;
+        
+        if (decl is VarDecl varDecl)
+        {
+            adr = varDecl.Address;
+            varType = (varDecl.Type as SimpleType)?.Kind;
+        }
+        else if (decl is Param param)
+        {
+            adr = param.Address;
+            varType = param.Type?.Kind;
+        }
+        
+        if (adr == null)
+        {
+            _logger.LogError("Variable {VariableName} not found or has no address", listenStatement.Identifier.Spelling);
+            adr = new Address(0, 0);
+        }
 
-        // Store to the target variable (TODO: get address from declaration)
-        var adr = new Address(0, 0);
+        // Push the address where we want to store the input
         int register = DisplayRegister(_currentLevel, adr.Level);
-        Emit(Machine.STOREop, 1, register, adr.Displacement);
+        Emit(Machine.LOADAop, 1, register, adr.Displacement);
+
+        // Call appropriate input primitive based on variable type
+        if (varType == BaseType.Char)
+        {
+            // get primitive - reads a single character
+            Emit(Machine.CALLop, 1, Machine.PBr, Machine.GetDisplacement);
+        }
+        else if (varType == BaseType.Int)
+        {
+            // getint primitive - reads an integer
+            Emit(Machine.CALLop, 1, Machine.PBr, Machine.GetintDisplacement);
+        }
+        else
+        {
+            // Default to getint for bool and unknown types
+            _logger.LogWarning("Variable {VariableName} has type {Type}, defaulting to integer input", 
+                listenStatement.Identifier.Spelling, varType);
+            Emit(Machine.CALLop, 1, Machine.PBr, Machine.GetintDisplacement);
+        }
 
         return null;
     }

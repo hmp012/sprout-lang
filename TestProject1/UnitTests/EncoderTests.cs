@@ -1203,4 +1203,107 @@ public class EncoderTests
         encoder.SaveTargetProgram(outputPath);
         _testOutputHelper.WriteLine($"TAM code for repeat times with variable saved to: {outputPath}");
     }
+
+    [Fact]
+    public void TestListenCarefully_Char_GeneratesCorrectInstructions()
+    {
+        // Arrange: Create a program with char input
+        string source = @"
+        create char count;
+        listenCarefully count;
+        vomit count;";
+        
+        // Act: encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+        Assert.Empty(errors);
+        Assert.NotNull(encoder);
+        
+        
+        _testOutputHelper.WriteLine("Generated TAM instructions for listenCarefully (char):");
+        for (int i = Machine.CB; i < Machine.CB + 15; i++)
+        {
+            var instr = Machine.Code[i];
+            if (instr.Op != 0 || instr.D != 0 || instr.N != 0 || instr.R != 0)
+            {
+                _testOutputHelper.WriteLine($"{i}: Op={instr.Op}, N={instr.N}, R={instr.R}, D={instr.D}");
+            }
+        }
+
+        // Find the variable declaration
+        var varDecl = program.Block.Statements
+            .OfType<VarDecl>()
+            .FirstOrDefault();
+
+        Assert.NotNull(varDecl);
+        Assert.NotNull(varDecl.Address);
+
+        // Find LOADA instruction (load address for input)
+        int loadaIdx = FindInstructionIndex(instr =>
+                instr.Op == Machine.LOADAop && instr.D == varDecl.Address.Displacement,
+            Machine.CB, Machine.CB + 15);
+        Assert.True(loadaIdx > 0, "LOADA instruction not found");
+
+        // Should have CALL get (for char input)
+        Assert.Equal(Machine.CALLop, Machine.Code[loadaIdx + 1].Op);
+        Assert.Equal(Machine.GetDisplacement, Machine.Code[loadaIdx + 1].D);
+        Assert.Equal(1, Machine.Code[loadaIdx + 1].N);
+        
+        var outputPath = Path.Combine(Path.GetTempPath(), "test_listenCarefully_char.tam");
+        encoder.SaveTargetProgram(outputPath);
+        _testOutputHelper.WriteLine($"TAM code for listenCarefully char saved to: {outputPath}");
+    }
+    
+    [Fact]
+    public void TestListenCarefully_Int_GeneratesCorrectInstructions()
+    {
+        // Arrange: Create a program with int input
+        string source = @"
+        create int num;
+        listenCarefully num;
+        vomit num;";
+
+        // Act: Encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+
+        // Assert: No errors
+        Assert.Empty(errors);
+        Assert.NotNull(encoder);
+
+        _testOutputHelper.WriteLine("Generated TAM instructions for listenCarefully (int):");
+        for (int i = Machine.CB; i < Machine.CB + 15; i++)
+        {
+            var instr = Machine.Code[i];
+            if (instr.Op != 0 || instr.D != 0 || instr.N != 0 || instr.R != 0)
+            {
+                _testOutputHelper.WriteLine($"{i}: Op={instr.Op}, N={instr.N}, R={instr.R}, D={instr.D}");
+            }
+        }
+
+        // Find the variable declaration
+        var varDecl = program.Block.Statements
+            .OfType<VarDecl>()
+            .FirstOrDefault();
+
+        Assert.NotNull(varDecl);
+        Assert.NotNull(varDecl.Address);
+
+        // Find LOADA instruction (load address for input)
+        int loadaIdx = FindInstructionIndex(instr =>
+                instr.Op == Machine.LOADAop && instr.D == varDecl.Address.Displacement,
+            Machine.CB, Machine.CB + 15);
+        Assert.True(loadaIdx > 0, "LOADA instruction not found");
+
+        // Should have CALL getint (for int input)
+        Assert.Equal(Machine.CALLop, Machine.Code[loadaIdx + 1].Op);
+        Assert.Equal(Machine.GetintDisplacement, Machine.Code[loadaIdx + 1].D);
+        Assert.Equal(1, Machine.Code[loadaIdx + 1].N); // 1 word for result
+
+        var outputPath = Path.Combine(Path.GetTempPath(), "test_listenCarefully_int.tam");
+        encoder.SaveTargetProgram(outputPath);
+        _testOutputHelper.WriteLine($"TAM code for listenCarefully (int) saved to: {outputPath}");
+    }
+    
+    
 }
+
+
