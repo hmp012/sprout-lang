@@ -1207,7 +1207,7 @@ public class EncoderTests
     [Fact]
     public void TestListenCarefully_Char_GeneratesCorrectInstructions()
     {
-        // Arrange: repeat times with variable count
+        // Arrange: Create a program with char input
         string source = @"
         create char count;
         listenCarefully count;
