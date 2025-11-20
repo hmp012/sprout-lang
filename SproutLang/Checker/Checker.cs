@@ -220,7 +220,18 @@ public class Checker : IAstVisitor
 
     public object? VisitListenStatement(ListenStatement listenStatement, object? arg)
     {
-        listenStatement.Identifier.Visit(this, arg);
+        var id = listenStatement.Identifier.Visit(this, arg)?.ToString();
+        if (id != null)
+        {
+            var varDecl = _identificationTable.Retrieve(id);
+            listenStatement.Declaration = varDecl;
+            
+            if (varDecl is not VarDecl and not Param)
+            {
+                _logger.LogError("Variable '{Id}' not declared", id);
+            }
+        }
+        
         return null;
     }
 
