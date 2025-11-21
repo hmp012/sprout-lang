@@ -94,7 +94,7 @@ public class Compiler
     {
         if (sourcePath.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
         {
-            return sourcePath.Substring(0, sourcePath.Length - 4) + ".tam";
+            return Path.ChangeExtension(sourcePath, ".tam");
         }
         else
         {
