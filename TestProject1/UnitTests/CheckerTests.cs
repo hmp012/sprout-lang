@@ -428,6 +428,7 @@ public class CheckerTests
          Assert.Single(errors);
      }
      
+
      [Fact]
      public void Check_FunctionDeclaration_ShouldProduceNoErrors()
      {
@@ -857,4 +858,5 @@ public class CheckerTests
          Assert.Contains(errors, e => e.Contains("not a function"));
      }
      
+
 }

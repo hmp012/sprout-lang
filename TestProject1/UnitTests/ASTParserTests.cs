@@ -242,4 +242,13 @@ public class ASTParserTests
             var valueLiteral = Assert.IsType<IntLiteralExpression>(stmt.Expr);
             Assert.Equal(10, valueLiteral.Literal.Value);
         }
+        
+
+        [Fact]
+        public void Parse_ArrayExpression_MissingClosingBracket_ShouldThrow()
+        {
+            string code = "vomit arr[3;";
+            var ex = Assert.Throws<ParserException>(() => AssertParses(code));
+            Assert.Contains("Expected RBracket", ex.Message);
+        }
 }
