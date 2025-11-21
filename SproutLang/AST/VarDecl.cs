@@ -1,9 +1,12 @@
+using SproutLang.TAM;
+
 namespace SproutLang.AST;
 
 public sealed class VarDecl :  Declaration
 {
     public TypeSpec Type { get; }
     public Identifier Name { get; }
+    public Address? Address { get; set; }
 
     public VarDecl(TypeSpec type, Identifier identifier)
     {

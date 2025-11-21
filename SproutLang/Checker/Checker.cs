@@ -104,6 +104,9 @@ public class Checker : IAstVisitor
         if (id != null)
         {
             var varDecl = _identificationTable.Retrieve(id);
+            
+            varAssignment.Declaration = varDecl;
+            
             if (varDecl is VarDecl vd)
             {
                 var declaredType = (vd.Type as SimpleType)?.Kind;
@@ -136,6 +139,7 @@ public class Checker : IAstVisitor
         {
             if (_identificationTable.Retrieve(id) is VarDecl array)
             {
+                arrayAssignment.Declaration = array;
                 if (array.Type.Visit(this, arg) is ArrayType type)
                 {
                     var size = type.Size;
@@ -217,7 +221,18 @@ public class Checker : IAstVisitor
 
     public object? VisitListenStatement(ListenStatement listenStatement, object? arg)
     {
-        listenStatement.Identifier.Visit(this, arg);
+        var id = listenStatement.Identifier.Visit(this, arg)?.ToString();
+        if (id != null)
+        {
+            var varDecl = _identificationTable.Retrieve(id);
+            listenStatement.Declaration = varDecl;
+            
+            if (varDecl is not VarDecl and not Param)
+            {
+                _logger.LogError("Variable '{Id}' not declared", id);
+            }
+        }
+        
         return null;
     }
 
@@ -246,7 +261,11 @@ public class Checker : IAstVisitor
 
     public object VisitCallStatement(CallStatement callStatement, object? arg)
     {
-        throw new NotImplementedException();
+        callStatement.Call.Visit(this, arg);
+        
+        callStatement.Declaration = callStatement.Call.Declaration;
+        
+        return null;
     }
 
     public object? VisitDeclaration(Declaration declaration, object? arg)
@@ -358,6 +377,9 @@ public class Checker : IAstVisitor
         }
 
         var decl = _identificationTable.Retrieve(id);
+        
+        // Store the declaration reference in the AST node for the encoder to use
+        varExpression.Declaration = decl;
 
         if (decl is VarDecl varDecl)
         {
@@ -383,6 +405,8 @@ public class Checker : IAstVisitor
         if (id != null)
         {
             Declaration? declaration = _identificationTable.Retrieve(id);
+            
+            callExpr.Declaration = declaration;
 
             if (declaration is SubRoutineDeclar subRoutineDeclar)
             {
@@ -416,6 +440,7 @@ public class Checker : IAstVisitor
 
         if (decl is VarDecl varDecl)
         {
+            arrayExpression.Declaration = varDecl;
             if (varDecl.Type is ArrayType arrayType)
             {
                 var indexResult = arrayExpression.Index.Visit(this, arg) as TypeResult;

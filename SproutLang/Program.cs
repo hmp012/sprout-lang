@@ -2,43 +2,55 @@
 
 using SproutLang.Scanner;
 using SproutLang.Parser;
+using SproutLang.Compiler;
 
 class Program
 {
     static void Main(string[] args)
     {
         Console.WriteLine("SproutLang Compiler");
-        Console.WriteLine("Choose test mode:");
-        Console.WriteLine("1. Test Scanner (s)");
-        Console.WriteLine("2. Test Parser with file (p)");
-        Console.WriteLine("3. Run Parser test suite (t)");
+        Console.WriteLine("===================");
         Console.WriteLine();
         
         if (args.Length > 0)
         {
-            switch (args[0].ToLower())
+            // Compile the file specified in command-line arguments
+            string sourcePath = args[0];
+            
+            if (!File.Exists(sourcePath))
             {
-                case "s":
-                case "scanner":
-                    TestScanner.Run(args.Skip(1).ToArray());
-                    break;
-                case "p":
-                case "parser":
-                    TestParser.Run(args.Skip(1).ToArray());
-                    break;
-                case "t":
-                case "test":
-                    TestParser.RunTestSuite();
-                    break;
-                default:
-                    TestParser.Run(args);
-                    break;
+                Console.WriteLine($"Error: File not found: {sourcePath}");
+                Environment.Exit(1);
             }
+            
+            bool success = Compiler.CompileFile(sourcePath);
+            Environment.Exit(success ? 0 : 1);
         }
         else
         {
-            // Default: run parser test suite
-            TestParser.RunTestSuite();
+            // Interactive mode - prompt for file path
+            Console.WriteLine("Enter the path to the SproutLang source file:");
+            string? sourcePath = Console.ReadLine();
+            
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                Console.WriteLine("No file specified. Exiting.");
+                Environment.Exit(1);
+            }
+            
+            if (!File.Exists(sourcePath))
+            {
+                Console.WriteLine($"Error: File not found: {sourcePath}");
+                Environment.Exit(1);
+            }
+            
+            bool success = Compiler.CompileFile(sourcePath);
+            
+            Console.WriteLine();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+            
+            Environment.Exit(success ? 0 : 1);
         }
     }
 }

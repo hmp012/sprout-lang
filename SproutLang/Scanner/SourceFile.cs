@@ -1,17 +1,19 @@
 namespace SproutLang.Scanner;
 
-public class SourceFile
+public class SourceFile : IDisposable
 {
     public const char EOL = '\n';
     public const char EOT = (char)0;
 
-    private FileStream _source;
+    private StreamReader _reader;
+    private bool _disposed = false;
 
     public SourceFile(string sourceFileName)
     {
         try
         {
-            _source = new FileStream(sourceFileName, FileMode.Open, FileAccess.Read);
+            // Use StreamReader with UTF-8 encoding to properly handle text files
+            _reader = new StreamReader(sourceFileName, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         }
         catch (FileNotFoundException)
         {
@@ -24,7 +26,7 @@ public class SourceFile
     {
         try
         {
-            int c = _source.ReadByte();
+            int c = _reader.Read();
             if (c < 0)
             {
                 return EOT;
@@ -35,5 +37,28 @@ public class SourceFile
         {    
             return EOT;
         }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _reader?.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+
+    ~SourceFile()
+    {
+        Dispose(false);
     }
 }

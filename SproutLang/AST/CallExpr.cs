@@ -4,6 +4,7 @@ public class CallExpr:  Expression
 {
     public Identifier Callee { get; }
     public ArgList Arguments { get; }
+    public Declaration? Declaration { get; set; }
 
     public CallExpr(Identifier callee, ArgList arguments)
     {

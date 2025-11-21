@@ -12,7 +12,7 @@ public class ParserTests
         File.WriteAllText(tempFile, code);
         try
         {
-            var sourceFile = new SourceFile(tempFile);
+            using var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var parser = new Parser(scanner);
             parser.ParseProgram();
@@ -30,7 +30,7 @@ public class ParserTests
         File.WriteAllText(tempFile, code);
         try
         {
-            var sourceFile = new SourceFile(tempFile);
+            using var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var parser = new Parser(scanner);
             Assert.Throws<ParserException>(() => parser.ParseProgram());

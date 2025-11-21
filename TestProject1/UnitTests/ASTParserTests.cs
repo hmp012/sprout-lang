@@ -21,7 +21,7 @@ public class ASTParserTests
         File.WriteAllText(tempFile, code);
         try
         {
-            var sourceFile = new SourceFile(tempFile);
+            using var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var parser = new ASTParser(scanner);
             return parser.ParseProgram();
@@ -80,7 +80,8 @@ public class ASTParserTests
             var program = AssertParses(code);
 
             var loop = Assert.IsType<RepeatTimes>(program.Block.Statements[0]);
-            Assert.Equal(3, loop.Times.Literal.Value);
+            var times = Assert.IsType<IntLiteralExpression>(loop.Times);
+            Assert.Equal(3, times.Literal.Value);
             Assert.Single(loop.Body.Statements);
         }
 

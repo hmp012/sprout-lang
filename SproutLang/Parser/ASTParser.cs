@@ -161,15 +161,7 @@ public class ASTParser
     {
         Accept(TokenKind.Repeat);
 
-        if (_currentToken.Kind == TokenKind.IntLiteral)
-        {
-            string value = _currentToken.Spelling;
-            Accept(TokenKind.IntLiteral);
-            Accept(TokenKind.Times);
-            Block block = ParseBlock();
-            return new RepeatTimes(new IntLiteralExpression(new IntLiteral(int.Parse(value))), block);
-        }
-        else
+        if (_currentToken.Kind == TokenKind.Until)
         {
             Accept(TokenKind.Until);
             Accept(TokenKind.LParenthesis);
@@ -177,6 +169,14 @@ public class ASTParser
             Accept(TokenKind.RParenthesis);
             Block block = ParseBlock();
             return new RepeatUntil(condition, block);
+        }
+        else
+        {
+            // Parse any expression (could be literal, variable, or complex expression)
+            Expression timesExpr = ParseExpression();
+            Accept(TokenKind.Times);
+            Block block = ParseBlock();
+            return new RepeatTimes(timesExpr, block);
         }
     }
 
