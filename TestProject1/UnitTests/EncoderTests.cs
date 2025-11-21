@@ -260,6 +260,99 @@ public class EncoderTests
     }
 
     [Fact]
+    public void TestIfStatement_ThenOnly_GeneratesJumpAndThenBranch()
+    {
+        // Arrange: simple if without else
+        string source = @"
+            create int x;
+            si (1 == 1) {
+                x = 1;
+                vomit x;
+            }
+        ";
+
+        // Act: encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+
+    // Assert: no errors from parser or checker
+    Assert.Empty(errors);
+    Assert.NotNull(encoder);
+
+        bool hasJumpIf = false;
+        bool hasJumpOverThen = false;
+        int putintCalls = 0;
+
+        for (int i = Machine.CB; i < Machine.PB; i++)
+        {
+            var instr = Machine.Code[i];
+
+            if (instr.Op == Machine.JUMPIFop)
+                hasJumpIf = true;
+
+            if (instr.Op == Machine.JUMPop)
+                hasJumpOverThen = true;
+
+            if (instr.Op == Machine.CALLop && instr.D == Machine.PutintDisplacement)
+                putintCalls++;
+        }
+
+        // We just care that:
+        // - condition produced a JUMPIF
+        // - there is at least one JUMP (end of then / after block)
+        // - vomit generated at least one putint call
+        Assert.True(hasJumpIf, "Expected a JUMPIF for the if condition.");
+        Assert.True(hasJumpOverThen, "Expected at least one JUMP after the then-branch.");
+        Assert.True(putintCalls >= 1);
+    }
+
+    [Fact]
+    public void TestIfStatement_WithElse_GeneratesJumpAndBothBranches()
+    {
+        // Arrange: simple si/sino with two different vomit values
+        string source = @"
+            si (1 == 1) {
+                vomit 1;
+            } sino {
+                vomit 2;
+            }
+        ";
+
+        // Act: encode the program
+        var (encoder, program, errors) = EncodeProgram(source);
+
+        // Assert: no errors from parser or checker
+        Assert.Empty(errors);
+        Assert.NotNull(encoder);
+
+        // We now inspect the generated TAM code to ensure:
+        //  - There is at least one JUMPIF (for the if condition)
+        //  - There is at least one JUMPop (to skip the else)
+        //  - There are exactly two calls to Putint (one for each vomit branch)
+
+        bool hasJumpIf = false;
+        bool hasJump = false;
+        int putintCalls = 0;
+
+        for (int i = Machine.CB; i < Machine.PB; i++)
+        {
+            var instr = Machine.Code[i];
+
+            if (instr.Op == Machine.JUMPIFop)
+                hasJumpIf = true;
+
+            if (instr.Op == Machine.JUMPop)
+                hasJump = true;
+
+            if (instr.Op == Machine.CALLop && instr.D == Machine.PutintDisplacement)
+                putintCalls++;
+        }
+
+        Assert.True(hasJumpIf, "Expected at least one JUMPIF for the if condition.");
+        Assert.True(hasJump, "Expected at least one JUMP to skip over the else part.");
+        Assert.Equal(2, putintCalls); // one for 'vomit 1;' and one for 'vomit 2;'
+    }
+
+    [Fact]
     public void TestVarDecl_Char_GeneratesCorrectInstructionsAndSave()
     {
         var source = @"
@@ -1159,7 +1252,7 @@ public class EncoderTests
         // After condition check, should have JUMPIF(0) back to loop start
         int jumpBackIdx = conditionCheckIdx + 1;
         Assert.Equal(Machine.JUMPIFop, Machine.Code[jumpBackIdx].Op);
-        Assert.Equal(0, Machine.Code[jumpBackIdx].N); // Jump if false (condition not met)
+        Assert.Equal(0, Machine.Code[jumpBackIdx].N); // Jump if false
         
         // The jump should go back to before the loop body
         Assert.True(Machine.Code[jumpBackIdx].D < jumpBackIdx, "JUMPIF should jump backwards");
@@ -1307,5 +1400,4 @@ public class EncoderTests
     
     
 }
-
 
