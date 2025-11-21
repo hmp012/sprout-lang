@@ -39,7 +39,7 @@ public class CheckerTests
         try
         {
             var logger = new TestLogger();
-            var sourceFile = new SourceFile(tempFile);
+            using var sourceFile = new SourceFile(tempFile);
             var scanner = new Scanner(sourceFile);
             var parser = new ASTParser(scanner);
             var program = parser.ParseProgram();
@@ -428,7 +428,433 @@ public class CheckerTests
          Assert.Single(errors);
      }
      
+     [Fact]
+     public void Check_FunctionDeclaration_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout add(int a, int b) {
+                 vomit a + b;
+             }
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
      
+     [Fact]
+     public void Check_FunctionCall_WithCorrectArguments_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout add(int a, int b) {
+                 vomit a + b;
+             }
+             
+             create int x;
+             create int y;
+             x = 5;
+             y = 10;
+             add(x, y);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
      
+     [Fact]
+     public void Check_FunctionCall_WithLiterals_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout add(int a, int b) {
+                 vomit a + b;
+             }
+             
+             add(5, 10);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionCall_WithWrongNumberOfArguments_ShouldLogError()
+     {
+         // Arrange
+         var code = @"
+             sprout add(int a, int b) {
+                 vomit a + b;
+             }
+             
+             add(5);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.NotEmpty(errors);
+         Assert.Contains(errors, e => e.Contains("argument") || e.Contains("parameter"));
+     }
+     
+     [Fact]
+     public void Check_FunctionCall_WithTooManyArguments_ShouldLogError()
+     {
+         // Arrange
+         var code = @"
+             sprout add(int a, int b) {
+                 vomit a + b;
+             }
+             
+             add(5, 10, 15);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.NotEmpty(errors);
+         Assert.Contains(errors, e => e.Contains("argument") || e.Contains("parameter"));
+     }
+     
+     [Fact]
+     public void Check_FunctionCall_UndeclaredFunction_ShouldLogError()
+     {
+         // Arrange
+         var code = @"
+             foo(5, 10);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.NotEmpty(errors);
+         Assert.Contains(errors, e => e.Contains("not declared") || e.Contains("foo"));
+     }
+     
+     [Fact]
+     public void Check_FunctionWithNoParameters_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout sayHello() {
+                 vomit 42;
+             }
+             
+             sayHello();
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionWithMultipleParameters_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout calculate(int a, int b, int c, int d) {
+                 vomit a + b + c + d;
+             }
+             
+             calculate(1, 2, 3, 4);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_NestedFunctionCalls_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout innerFunc(int x) {
+                 vomit x;
+             }
+             
+             sprout outerFunc(int y) {
+                 innerFunc(y);
+             }
+             
+             outerFunc(42);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionAccessingLocalVariables_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout test(int param) {
+                 create int local;
+                 local = param + 10;
+                 vomit local;
+             }
+             
+             test(5);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionParameterShadowingGlobalVariable_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             create int x;
+             x = 100;
+             
+             sprout test(int x) {
+                 vomit x;
+             }
+             
+             test(42);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_MultipleFunctionDeclarations_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout func1(int a) {
+                 vomit a;
+             }
+             
+             sprout func2(int b) {
+                 vomit b;
+             }
+             
+             sprout func3(int c) {
+                 vomit c;
+             }
+             
+             func1(1);
+             func2(2);
+             func3(3);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionWithMixedParameterTypes_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout mixed(int a, char b, bool c) {
+                 vomit a;
+                 vomit b;
+                 vomit c;
+             }
+             
+
+             mixed(42, 'x', true);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_CallFunctionBeforeDeclaration_ShouldLogError()
+     {
+         // Arrange
+         var code = @"
+             test(5);
+             
+             sprout test(int x) {
+                 vomit x;
+             }
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.NotEmpty(errors);
+         Assert.Contains(errors, e => e.Contains("not declared") || e.Contains("test"));
+     }
+     
+     [Fact]
+     public void Check_DuplicateFunctionDeclaration_ShouldLogError()
+     {
+         // Arrange
+         var code = @"
+             sprout test(int x) {
+                 vomit x;
+             }
+             
+             sprout test(int y) {
+                 vomit y;
+             }
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.NotEmpty(errors);
+         Assert.Contains(errors, e => e.Contains("already declared") || e.Contains("test"));
+     }
+     
+     [Fact]
+     public void Check_FunctionCallAsExpression_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout getValue(int x) {
+                 vomit x;
+             }
+             
+             create int result;
+             result = getValue(42);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionCallInComplexExpression_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout getValue(int x) {
+                 vomit x;
+             }
+             
+             create int result;
+             result = getValue(10) + getValue(20);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionCallAsStatement_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+
+             sprout printValue(int x) {
+                 vomit x;
+             }
+             
+             printValue(100);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionWithBoolParameter_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout checkFlag(bool flag) {
+                 vomit flag;
+             }
+             
+             checkFlag(true);
+             checkFlag(false);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_FunctionWithCharParameter_ShouldProduceNoErrors()
+     {
+         // Arrange
+         var code = @"
+             sprout printChar(char c) {
+                 vomit c;
+             }
+             
+             printChar('A');
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.Empty(errors);
+     }
+     
+     [Fact]
+     public void Check_CallingNonFunctionIdentifier_ShouldLogError()
+     {
+         // Arrange
+         var code = @"
+             create int x;
+             x = 5;
+             x(10);
+         ";
+
+         // Act
+         var errors = CheckCode(code);
+
+         // Assert
+         Assert.NotEmpty(errors);
+         Assert.Contains(errors, e => e.Contains("not a function"));
+     }
      
 }
