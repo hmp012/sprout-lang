@@ -5,14 +5,15 @@ public class SourceFile : IDisposable
     public const char EOL = '\n';
     public const char EOT = (char)0;
 
-    private FileStream _source;
+    private StreamReader _reader;
     private bool _disposed = false;
 
     public SourceFile(string sourceFileName)
     {
         try
         {
-            _source = new FileStream(sourceFileName, FileMode.Open, FileAccess.Read);
+            // Use StreamReader with UTF-8 encoding to properly handle text files
+            _reader = new StreamReader(sourceFileName, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         }
         catch (FileNotFoundException)
         {
@@ -25,7 +26,7 @@ public class SourceFile : IDisposable
     {
         try
         {
-            int c = _source.ReadByte();
+            int c = _reader.Read();
             if (c < 0)
             {
                 return EOT;
@@ -50,7 +51,7 @@ public class SourceFile : IDisposable
         {
             if (disposing)
             {
-                _source?.Dispose();
+                _reader?.Dispose();
             }
             _disposed = true;
         }

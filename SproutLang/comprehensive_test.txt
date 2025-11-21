@@ -1,0 +1,45 @@
+﻿create int x;
+create int y;
+create int sum;
+create int product;
+x = 10;
+y = 5;
+sum = x + y;
+product = x * y;
+vomit sum;
+vomit product;
+
+create bool isGreater;
+create bool isEqual;
+isGreater = x > y;
+isEqual = x == y;
+vomit isGreater;
+
+si (x > y) {
+    vomit 1;
+} sino {
+    vomit 0;
+}
+
+create int counter;
+counter = 0;
+repeat 3 times {
+    counter = counter + 1;
+    vomit counter;
+}
+
+create int n;
+n = 5;
+repeat until (n < 1) {
+    n = n - 1;
+}
+vomit n;
+
+sprout add(int a, int b) {
+    create int result;
+    result = a + b;
+    vomit result;
+}
+
+bloom add(15, 25);
+bloom add(x, y);
